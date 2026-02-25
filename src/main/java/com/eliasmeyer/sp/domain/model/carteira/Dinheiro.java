@@ -8,7 +8,7 @@ public final class Dinheiro implements Comparable<Dinheiro> {
 
     private BigDecimal valor;
 
-    Dinheiro(BigDecimal valor) {
+    public Dinheiro(BigDecimal valor) {
         Objects.requireNonNull(valor, "Valor não pode ser nulo");
         if (valor.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("valor nao pode ser menor ou igual a zero");

@@ -1,31 +1,32 @@
 package com.eliasmeyer.sp.domain.model.usuario;
 
-import java.util.Objects;
-
+/**
+ * Representa um CNPJ (Cadastro Nacional da Pessoa Jurídica) brasileiro.
+ * Valida número de dígitos, formato e verifica dígitos verificadores.
+ */
 public class Cnpj extends Documento {
 
-    public Cnpj(String value) {
-        super(value);
+    Cnpj(String value) {
+        super(validate(value));
     }
 
     /**
-     * Remove non digits
-     *
-     * @param cnpj
-     * @return cnpj only digits
+     * Formata o CNPJ para o padrão: XX.XXX.XXX/XXXX-XX
      */
-    private static String removeNonDigits(String cnpj) {
-        return cnpj.replaceAll("\\D", "");
+    private static String format(String cnpj) {
+        return cnpj.replaceAll("(\\d{2})(\\d{3})(\\d{3})(\\d{4})(\\d{2})", "$1.$2.$3/$4-$5");
     }
 
     /**
-     * Validate cnpj number
-     *
-     * @param cnpj only digits and length equal 14
-     * @return true is valid
+     * Valida a sequência de verificação do CNPJ.
      */
     private static boolean isValid(String cnpj) {
-        // First verification digit
+        // Rejeita CNPJ com todos os dígitos iguais
+        if (cnpj.matches("(\\d)\\1{13}")) {
+            return false;
+        }
+
+        // Valida primeiro dígito verificador
         int[] weights1 = {5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2};
         int sum = 0;
         for (int i = 0; i < 12; i++) {
@@ -34,7 +35,7 @@ public class Cnpj extends Documento {
         int firstDigit = 11 - (sum % 11);
         if (firstDigit > 9) firstDigit = 0;
 
-        // Second verification digit
+        // Valida segundo dígito verificador
         int[] weights2 = {6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2};
         sum = 0;
         for (int i = 0; i < 13; i++) {
@@ -43,35 +44,24 @@ public class Cnpj extends Documento {
         int secondDigit = 11 - (sum % 11);
         if (secondDigit > 9) secondDigit = 0;
 
-        // Check if calculated digits match the provided ones
+        // Compara dígitos calculados com os fornecidos
         return cnpj.charAt(12) - '0' == firstDigit &&
                 cnpj.charAt(13) - '0' == secondDigit;
+    }
 
+    /**
+     * Valida e formata o CNPJ.
+     */
+    private static String validate(String digits) {
+        if (!isValid(digits)) {
+            throw new IllegalArgumentException("CNPJ inválido: dígitos verificadores não correspondem");
+        }
+
+        return digits;
     }
 
     @Override
     public String getNumero() {
-        return this.numero.replace("/^(\\d{2})(\\d{3})(\\d{3})(\\d{4})(\\d{2})$/,", "$1.$2.$3/$4-$5");
-    }
-
-    @Override
-    protected String validate(String value) {
-        addValidation(Objects::isNull, "Cnpj não pode ser nulo!");
-        addValidation(String::isBlank, "Cnpj não pode ser branco!");
-        //Check if it has char
-        addValidation(v -> !v.replaceAll("\\D", "").isBlank(), "Cnpj inválido - Letras presentes!");
-
-        // Check length number is equals 14 digits
-        addValidation(v -> {
-            var cnpjClean = removeNonDigits(v);
-            return !cnpjClean.isBlank() && !cnpjClean.matches("\\d{14}");
-        }, "Cnpj inválido - Comprimento do cnpj é inválido");
-
-        // Check if it's sequence digits
-        addValidation(v -> v.matches("(\\d)\\1{13}"), "Cnpj inválido - Sequência repetida!");
-
-        //Check if number is valid
-        addValidation(v -> isValid(removeNonDigits(v)), "Cnpj inválido - dígitos verificadores não correspondem");
-        return value;
+        return format(this.numero);
     }
 }

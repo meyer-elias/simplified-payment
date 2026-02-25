@@ -1,14 +1,12 @@
 package com.eliasmeyer.sp.domain.model.carteira;
 
 
-import com.eliasmeyer.sp.domain.shared.identifier.Id;
-
 public class Carteira {
 
-    private Dinheiro saldoDisponivel;
-    private Dinheiro saldoReservado;
+    private final Dinheiro saldoDisponivel;
+    private final Dinheiro saldoReservado;
 
-    public Carteira(Id usuarioId) {
+    public Carteira() {
         this.saldoDisponivel = new Dinheiro("0");
         this.saldoReservado = new Dinheiro("0");
     }

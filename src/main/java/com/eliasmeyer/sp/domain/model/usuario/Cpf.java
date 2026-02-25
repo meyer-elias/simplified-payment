@@ -1,69 +1,66 @@
 package com.eliasmeyer.sp.domain.model.usuario;
 
-import java.util.Objects;
-
+/**
+ * Representa um CPF (Cadastro de Pessoa Física) brasileiro.
+ * Valida número de dígitos, formato e verifica dígitos verificadores.
+ */
 public class Cpf extends Documento {
 
-    public Cpf(String value) {
-        super(value);
+    Cpf(String value) {
+        super(validate(value));
     }
 
-    private static String removeNonDigits(String cpf) {
-        return cpf.replaceAll("\\D", "");
+    /**
+     * Formata o CPF para o padrão: XXX.XXX.XXX-XX
+     */
+    private static String format(String cpf) {
+        return cpf.replaceAll("(\\d{3})(\\d{3})(\\d{3})(\\d{2})", "$1.$2.$3-$4");
     }
 
-    private static boolean isValid(String value) {
-        // All digits same check
-        if (value.matches("(\\d)\\1{10}")) {
+    /**
+     * Valida a sequência de verificação do CPF.
+     */
+    private static boolean isValid(String digits) {
+        // Rejeita CPF com todos os dígitos iguais
+        if (digits.matches("(\\d)\\1{10}")) {
             return false;
         }
 
-        // First verification digit
+        // Valida primeiro dígito verificador
         int sum = 0;
         for (int i = 0; i < 9; i++) {
-            sum += (10 - i) * (value.charAt(i) - '0');
+            sum += (10 - i) * (digits.charAt(i) - '0');
         }
         int firstDigit = 11 - (sum % 11);
         if (firstDigit > 9) firstDigit = 0;
 
-        // Second verification digit
+        // Valida segundo dígito verificador
         sum = 0;
         for (int i = 0; i < 10; i++) {
-            sum += (11 - i) * (i < 9 ? (value.charAt(i) - '0') : firstDigit);
+            sum += (11 - i) * (i < 9 ? (digits.charAt(i) - '0') : firstDigit);
         }
         int secondDigit = 11 - (sum % 11);
         if (secondDigit > 9) secondDigit = 0;
 
-        // Check if calculated digits match the provided ones
-        return value.charAt(9) - '0' == firstDigit &&
-                value.charAt(10) - '0' == secondDigit;
+        // Compara dígitos calculados com os fornecidos
+        return digits.charAt(9) - '0' == firstDigit &&
+                digits.charAt(10) - '0' == secondDigit;
+    }
+
+    /**
+     * Valida e formata o CPF.
+     */
+    private static String validate(String digits) {
+        if (!isValid(digits)) {
+            throw new IllegalArgumentException("CPF inválido: dígitos verificadores não correspondem");
+        }
+
+        return digits;
     }
 
     @Override
     public String getNumero() {
-        return this.numero.replace("/(\\d{3})(\\d{3})(\\d{3})(\\d{2})/", "$1.$2.$3-$4");
-    }
-
-    @Override
-    protected String validate(String value) {
-        addValidation(Objects::isNull, "Cpf não pode ser nulo!");
-        addValidation(String::isBlank, "Cpf não pode ser branco!");
-
-        //Check if it has char
-        addValidation(v -> !v.replaceAll("\\D", "").isBlank(), "Cpf inválido - Letras presentes!");
-
-        //Check length number is equals 11 digits
-        addValidation(v -> {
-            var cnpjClean = removeNonDigits(v);
-            return !cnpjClean.isBlank() && !cnpjClean.matches("\\d{11}");
-        }, "Cpf inválido - Comprimento do cpf é inválido");
-
-        // Check if is sequence digits
-        addValidation(v -> v.matches("(\\d)\\1{10}"), "Cpf inválido - Sequência repetida!");
-
-        //Check if number is valid
-        addValidation(v -> isValid(removeNonDigits(v)), "Cpf inválido - dígitos verificadores não correspondem");
-        return value;
+        return format(this.numero);
     }
 }
 

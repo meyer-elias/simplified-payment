@@ -9,7 +9,7 @@ public abstract class GenericIdentifier<T extends Serializable & Comparable<T>> 
     private final T value;
 
     protected GenericIdentifier(T value) {
-        this.value = validate(value);
+        this.value = value;
     }
 
     @Override

@@ -1,8 +1,8 @@
 package com.eliasmeyer.sp.domain.model.carteira;
 
-import com.eliasmeyer.sp.domain.commons.exception.BusinessRuleException;
+import com.eliasmeyer.sp.domain.shared.DomainException;
 
-public class SaldoInsuficienteException extends BusinessRuleException {
+public class SaldoInsuficienteException extends DomainException {
 
     SaldoInsuficienteException(String message) {
         super(message);

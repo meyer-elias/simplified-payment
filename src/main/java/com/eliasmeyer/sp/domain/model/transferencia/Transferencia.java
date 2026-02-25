@@ -1,19 +1,19 @@
 package com.eliasmeyer.sp.domain.model.transferencia;
 
-import com.eliasmeyer.sp.domain.shared.AggregateRoot;
 import com.eliasmeyer.sp.domain.model.carteira.Dinheiro;
 import com.eliasmeyer.sp.domain.model.transferencia.eventos.TransferenciaCanceladaEvento;
 import com.eliasmeyer.sp.domain.model.transferencia.eventos.TransferenciaRealizadaEvento;
 import com.eliasmeyer.sp.domain.model.transferencia.eventos.TransferenciaReservadaEvento;
-import com.eliasmeyer.sp.domain.model.usuario.User;
+import com.eliasmeyer.sp.domain.model.usuario.Usuario;
+import com.eliasmeyer.sp.domain.shared.AggregateRoot;
 
 import java.time.LocalDateTime;
 
 public class Transferencia extends AggregateRoot<TransferenciaId> {
 
-    private final User pagador;
+    private final Usuario pagador;
 
-    private final User recebedor;
+    private final Usuario recebedor;
 
     private final Dinheiro quantia;
 
@@ -23,7 +23,7 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
 
     private TransferenciaState state;
 
-    public Transferencia(User pagador, User recebedor, Dinheiro quantia) {
+    public Transferencia(Usuario pagador, Usuario recebedor, Dinheiro quantia) {
         super(new TransferenciaId());
         this.pagador = pagador;
         this.recebedor = recebedor;
@@ -38,10 +38,15 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
     }
 
     public void reservar() {
+        if (!pagador.canEnviarDinheiro()) {
+            falhar();
+            throw new LojistaNaoPodeTransferirDinheiroException("Lojista nao pode transferir dinheiro");
+        }
         pagador.getCarteira().reservar(this.quantia);
         state.reservar(this);
         atualizadoEm = LocalDateTime.now();
         this.registerEvent(() -> new TransferenciaReservadaEvento(this.getId(), atualizadoEm));
+        this.clearEvents();
     }
 
     public void realizar() {
@@ -50,19 +55,21 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
         state.completar(this);
         atualizadoEm = LocalDateTime.now();
         this.registerEvent(() -> new TransferenciaRealizadaEvento(this.getId(), atualizadoEm));
+        this.clearEvents();
     }
 
     public void falhar() {
         state.falhar(this);
         atualizadoEm = LocalDateTime.now();
         this.registerEvent(() -> new TransferenciaCanceladaEvento(this.getId(), atualizadoEm));
+        this.clearEvents();
     }
 
-    public User getPagador() {
+    public Usuario getPagador() {
         return pagador;
     }
 
-    public User getRecebedor() {
+    public Usuario getRecebedor() {
         return recebedor;
     }
 
