@@ -12,6 +12,9 @@ import com.eliasmeyer.sp.domain.ports.out.transferencia.TransferenciaAutorizador
 import com.eliasmeyer.sp.domain.ports.out.transferencia.TransferenciaOutputPort;
 import com.eliasmeyer.sp.domain.ports.out.usuario.UsuarioOutputPort;
 
+/**
+ *
+ */
 public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPort {
 
   private final TransferenciaAutorizadorOutputPort transferenciaAutorizadorOutputPort;
@@ -34,8 +37,8 @@ public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPor
 
   @Override
   public void execute(EfetuarTransferenciaCommand command) {
-    UsuarioId idPagador = new UsuarioId(command.IdPagador());
-    UsuarioId idRecebedor = new UsuarioId(command.IdRecebedor());
+    UsuarioId idPagador = new UsuarioId(command.idPagador());
+    UsuarioId idRecebedor = new UsuarioId(command.idRecebedor());
     Dinheiro quantia = new Dinheiro(command.quantia());
 
     Usuario uPagador = usuarioOutputPort.buscarPorId(idPagador).orElseThrow(
@@ -47,10 +50,7 @@ public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPor
             String.format("Usuário não encontrado com o id [%s]", idRecebedor)));
 
     var transferencia = new Transferencia(uPagador, uRecebedor, quantia);
-
     try {
-      transferenciaOutputPort.salvar(transferencia);
-
       if (!transferenciaAutorizadorOutputPort.isAutorizado(idPagador)) {
         transferencia.falhar();
         transferenciaOutputPort.salvar(transferencia);
@@ -61,16 +61,15 @@ public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPor
         throw new TransferenciaNaoAutorizadaException(
             String.format("Usuário [%s] não autorizado para transferir dinheiro.", idPagador));
       }
-
       transferencia.realizar();
       transferenciaOutputPort.salvar(transferencia);
       usuarioOutputPort.salvar(uPagador);
       usuarioOutputPort.salvar(uRecebedor);
+    } finally {
+      // bloco finally garante que os eventos sejam despachados e limpos em qualquer cenário (sucesso ou erro)
+      // sem mascarar exceções.
       eventDispatcher.dispatch(transferencia.domainEvents());
       transferencia.clearEvents();
-    } catch (Exception e) {
-      transferencia.clearEvents();
-      throw e;
     }
   }
 }
