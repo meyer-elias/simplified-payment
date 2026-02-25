@@ -1,9 +1,10 @@
 package com.eliasmeyer.sp.application.usecase.user;
 
-import com.eliasmeyer.sp.application.port.user.in.CriarUsuarioCommand;
-import com.eliasmeyer.sp.application.port.user.in.CriarUsuarioInputPort;
-import com.eliasmeyer.sp.application.port.user.out.UsuarioOutputPort;
 import com.eliasmeyer.sp.domain.model.usuario.*;
+import com.eliasmeyer.sp.domain.ports.in.usuario.CriarUsuarioCommand;
+import com.eliasmeyer.sp.domain.ports.in.usuario.CriarUsuarioInputPort;
+import com.eliasmeyer.sp.domain.ports.out.PasswordEncoder;
+import com.eliasmeyer.sp.domain.ports.out.usuario.UsuarioOutputPort;
 
 /**
  * Caso de uso para criar um novo usuário.
@@ -48,7 +49,7 @@ public class CriarUsuarioUseCase implements CriarUsuarioInputPort {
         Usuario novoUsuario = UsuarioFactory.criar(documento, nome, email, senhaHasheada);
 
         // Persiste usuário
-        usuarioOutputPort.registrar(novoUsuario);
+        usuarioOutputPort.salvar(novoUsuario);
     }
 }
 

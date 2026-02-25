@@ -1,8 +1,8 @@
-package com.eliasmeyer.sp.application.port.transferencia.out;
+package com.eliasmeyer.sp.domain.ports.out.transferencia;
 
 import com.eliasmeyer.sp.domain.model.transferencia.Transferencia;
 
 public interface TransferenciaOutputPort {
 
-    void adicionar(Transferencia transferencia);
+  void salvar(Transferencia transferencia);
 }

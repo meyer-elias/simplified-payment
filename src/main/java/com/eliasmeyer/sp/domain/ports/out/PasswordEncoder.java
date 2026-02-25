@@ -1,4 +1,4 @@
-package com.eliasmeyer.sp.application.usecase.user;
+package com.eliasmeyer.sp.domain.ports.out;
 
 /**
  * Interface para codificação de senhas.

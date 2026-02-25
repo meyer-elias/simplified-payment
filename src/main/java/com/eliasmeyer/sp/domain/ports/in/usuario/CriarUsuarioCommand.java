@@ -1,4 +1,4 @@
-package com.eliasmeyer.sp.application.port.user.in;
+package com.eliasmeyer.sp.domain.ports.in.usuario;
 
 public record CriarUsuarioCommand(String nome, String documento, String email, String senha) {
 

@@ -1,6 +1,6 @@
 package com.eliasmeyer.sp.infrastructure.security;
 
-import com.eliasmeyer.sp.application.usecase.user.PasswordEncoder;
+import com.eliasmeyer.sp.domain.ports.out.PasswordEncoder;
 
 /**
  * Implementação simples de PasswordEncoder para desenvolvimento.

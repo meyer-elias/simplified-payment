@@ -1,6 +1,8 @@
 package com.eliasmeyer.sp.domain.model.carteira;
 
 
+import com.eliasmeyer.sp.domain.exception.SaldoInsuficienteException;
+
 public class Carteira {
 
     private final Dinheiro saldoDisponivel;

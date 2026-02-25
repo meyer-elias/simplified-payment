@@ -1,4 +1,4 @@
-package com.eliasmeyer.sp.application.port.transferencia.in;
+package com.eliasmeyer.sp.domain.ports.in.transferencia;
 
 import java.math.BigDecimal;
 

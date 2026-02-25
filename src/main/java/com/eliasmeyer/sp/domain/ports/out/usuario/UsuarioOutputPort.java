@@ -1,4 +1,4 @@
-package com.eliasmeyer.sp.application.port.user.out;
+package com.eliasmeyer.sp.domain.ports.out.usuario;
 
 import com.eliasmeyer.sp.domain.model.usuario.Documento;
 import com.eliasmeyer.sp.domain.model.usuario.Email;
@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface UsuarioOutputPort {
 
-    UsuarioId registrar(Usuario usuario);
+    void salvar(Usuario usuario);
 
     Optional<Usuario> buscarPorId(UsuarioId id);
 

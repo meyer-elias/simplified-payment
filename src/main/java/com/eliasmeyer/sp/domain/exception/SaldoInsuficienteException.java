@@ -1,4 +1,4 @@
-package com.eliasmeyer.sp.domain.model.carteira;
+package com.eliasmeyer.sp.domain.exception;
 
 import com.eliasmeyer.sp.domain.shared.DomainException;
 

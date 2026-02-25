@@ -1,4 +1,4 @@
-package com.eliasmeyer.sp.domain.model.transferencia;
+package com.eliasmeyer.sp.domain.exception;
 
 import com.eliasmeyer.sp.domain.shared.DomainException;
 
