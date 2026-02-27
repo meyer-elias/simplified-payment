@@ -14,8 +14,8 @@ import static org.mockito.Mockito.when;
 
 import com.eliasmeyer.sp.application.exception.AutorizadorIndisponivelException;
 import com.eliasmeyer.sp.application.exception.TransferenciaIndisponivelException;
+import com.eliasmeyer.sp.application.exception.TransferenciaNaoAutorizadaException;
 import com.eliasmeyer.sp.application.shared.logging.AppLogger;
-import com.eliasmeyer.sp.domain.exception.TransferenciaNaoAutorizadaException;
 import com.eliasmeyer.sp.domain.model.carteira.Dinheiro;
 import com.eliasmeyer.sp.domain.model.usuario.DocumentoFactory;
 import com.eliasmeyer.sp.domain.model.usuario.Email;

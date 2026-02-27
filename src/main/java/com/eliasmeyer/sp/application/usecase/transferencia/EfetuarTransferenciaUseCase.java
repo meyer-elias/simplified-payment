@@ -1,9 +1,12 @@
 package com.eliasmeyer.sp.application.usecase.transferencia;
 
 import com.eliasmeyer.sp.application.exception.AutorizadorIndisponivelException;
+import com.eliasmeyer.sp.application.exception.TransferenciaIllegalException;
 import com.eliasmeyer.sp.application.exception.TransferenciaIndisponivelException;
+import com.eliasmeyer.sp.application.exception.TransferenciaNaoAutorizadaException;
 import com.eliasmeyer.sp.application.shared.logging.AppLogger;
-import com.eliasmeyer.sp.domain.exception.TransferenciaNaoAutorizadaException;
+import com.eliasmeyer.sp.domain.exception.LojistaNaoPodeTransferirDinheiroException;
+import com.eliasmeyer.sp.domain.exception.SaldoInsuficienteException;
 import com.eliasmeyer.sp.domain.model.carteira.Dinheiro;
 import com.eliasmeyer.sp.domain.model.transferencia.Transferencia;
 import com.eliasmeyer.sp.domain.model.usuario.Usuario;
@@ -87,6 +90,11 @@ public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPor
 			transferencia.cancelar();
 			salvarBestEffort(transferencia);
 			throw new TransferenciaIndisponivelException("Serviço do autorizador indisponível", e);
+		} catch (LojistaNaoPodeTransferirDinheiroException | SaldoInsuficienteException e) {
+			transferencia.cancelar();
+			salvarBestEffort(transferencia);
+			throw new TransferenciaIllegalException(
+				"Transferência cancelada devido restrição da regra de negócio.", e);
 		} catch (Exception e) {
 			// Só tenta marcar como FALHADA se o estado ainda for RESERVADA.
 			// Se realizar() já foi chamado com sucesso e apenas o salvar() falhou,
