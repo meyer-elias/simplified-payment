@@ -11,8 +11,8 @@ public record Nome(String nome) {
 	public Nome {
 		Objects.requireNonNull(nome, "Nome não pode ser nulo");
 
-		if (nome.trim().isEmpty()) {
-			throw new IllegalArgumentException("Nome não pode estar vazio");
+		if (nome.trim().length() < 3) {
+			throw new IllegalArgumentException("Nome deve ter pelo menos 3 caracteres");
 		}
 	}
 }
