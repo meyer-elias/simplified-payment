@@ -5,23 +5,23 @@ import com.eliasmeyer.sp.domain.model.transferencia.eventos.TransferenciaReserva
 import com.eliasmeyer.sp.domain.shared.DomainEventHandler;
 
 public class TransferenciaReservadaHandler implements
-    DomainEventHandler<TransferenciaReservadaEvento> {
+	DomainEventHandler<TransferenciaReservadaEvento> {
 
-  private final AppLogger appLogger;
+	private final AppLogger appLogger;
 
-  public TransferenciaReservadaHandler(AppLogger appLogger) {
-    this.appLogger = appLogger;
-  }
+	public TransferenciaReservadaHandler(AppLogger appLogger) {
+		this.appLogger = appLogger;
+	}
 
-  @Override
-  public Class<TransferenciaReservadaEvento> eventType() {
-    return TransferenciaReservadaEvento.class;
-  }
+	@Override
+	public Class<TransferenciaReservadaEvento> eventType() {
+		return TransferenciaReservadaEvento.class;
+	}
 
-  @Override
-  public void handle(TransferenciaReservadaEvento event) {
-    appLogger.debug("### Início transferencia de quantia | RESERVADA ###");
-    appLogger.debug("### Transferencia: {%s} ", event.transferencia());
-    appLogger.debug("### Fim transferência de quantia | RESERVADA ###");
-  }
+	@Override
+	public void handle(TransferenciaReservadaEvento event) {
+		appLogger.debug("### Início transferencia de quantia | RESERVADA ###");
+		appLogger.debug("### Transferencia: {%s} ", event.transferencia());
+		appLogger.debug("### Fim transferência de quantia | RESERVADA ###");
+	}
 }

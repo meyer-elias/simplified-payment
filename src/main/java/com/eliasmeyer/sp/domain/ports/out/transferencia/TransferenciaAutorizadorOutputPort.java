@@ -4,5 +4,5 @@ import com.eliasmeyer.sp.domain.shared.identifier.Id;
 
 public interface TransferenciaAutorizadorOutputPort {
 
-    boolean isAutorizado(Id idUsuario);
+	boolean isAutorizado(Id idUsuario);
 }

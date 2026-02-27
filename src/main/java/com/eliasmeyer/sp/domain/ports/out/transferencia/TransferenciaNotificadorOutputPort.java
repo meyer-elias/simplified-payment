@@ -4,5 +4,5 @@ import com.eliasmeyer.sp.domain.model.transferencia.Transferencia;
 
 public interface TransferenciaNotificadorOutputPort {
 
-  void notificar(Transferencia transferencia);
+	void notificar(Transferencia transferencia);
 }

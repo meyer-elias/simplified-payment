@@ -2,149 +2,152 @@ package com.eliasmeyer.sp.application.shared;
 
 import com.eliasmeyer.sp.application.shared.logging.AppLogger;
 import com.eliasmeyer.sp.domain.shared.DomainEvent;
+import com.eliasmeyer.sp.domain.shared.DomainEventDispatcher;
 import com.eliasmeyer.sp.domain.shared.DomainEventHandler;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Default implementation of a domain event dispatcher.
+ * Implementação padrão do dispatcher de eventos de domínio.
  * <p>
- * Manages the registration and dispatch of domain events to their respective handlers.
- * Handlers are registered at construction time and cannot be modified afterwards.
- * Event dispatch is thread-safe and continues even if individual handlers fail.
+ * Gerencia o registro e o despacho de eventos de domínio para seus respectivos handlers. Os
+ * handlers são registrados no momento da construção e não podem ser modificados posteriormente. O
+ * despacho de eventos é thread-safe e continua mesmo que handlers individuais falhem.
  * </p>
  */
-public class DefaultDomainEventDispatcher {
+public class DefaultDomainEventDispatcher implements DomainEventDispatcher {
 
-    private static final List<DomainEventHandler<? extends DomainEvent>> EMPTY_HANDLER_LIST = List.of();
+	private static final List<DomainEventHandler<? extends DomainEvent>> EMPTY_HANDLER_LIST = List.of();
 
-    private final AppLogger appLogger;
-    private final Map<Class<? extends DomainEvent>, List<DomainEventHandler<? extends DomainEvent>>> handlers;
+	private final AppLogger appLogger;
+	private final Map<Class<? extends DomainEvent>, List<DomainEventHandler<? extends DomainEvent>>> handlers;
 
-    /**
-     * Creates a new domain event dispatcher with the provided handlers.
-     * <p>
-     * Handlers are indexed by their event type for efficient lookup during dispatch.
-     * Once initialized, the dispatcher cannot be modified (immutable handlers registry).
-     * </p>
-     *
-     * @param appLogger     the logger for dispatch-related logs
-     * @param eventHandlers list of handlers to register; cannot be null or contain null elements
-     * @throws NullPointerException if eventHandlers is null or contains null handlers
-     */
-    public DefaultDomainEventDispatcher(AppLogger appLogger, List<DomainEventHandler<? extends DomainEvent>> eventHandlers) {
-        Objects.requireNonNull(eventHandlers, "Event handlers list cannot be null");
-        this.appLogger = appLogger;
-        this.handlers = new ConcurrentHashMap<>();
+	/**
+	 * Cria um novo dispatcher de eventos de domínio com os handlers fornecidos.
+	 * <p>
+	 * Os handlers são indexados pelo tipo de evento para busca eficiente durante o despacho. Após a
+	 * inicialização, o dispatcher não pode ser modificado (registro de handlers imutável).
+	 * </p>
+	 *
+	 * @param appLogger     o logger para registros relacionados ao despacho
+	 * @param eventHandlers lista de handlers a registrar; não pode ser nula nem conter elementos
+	 *                      nulos
+	 * @throws NullPointerException se eventHandlers for nula ou contiver handlers nulos
+	 */
+	public DefaultDomainEventDispatcher(AppLogger appLogger,
+		List<DomainEventHandler<? extends DomainEvent>> eventHandlers) {
+		Objects.requireNonNull(eventHandlers, "A lista de handlers não pode ser nula");
+		this.appLogger = appLogger;
+		this.handlers = new ConcurrentHashMap<>();
 
-        for (DomainEventHandler<? extends DomainEvent> handler : eventHandlers) {
-            Objects.requireNonNull(handler, "Event handler cannot be null");
-            handlers.computeIfAbsent(handler.eventType(), k -> new ArrayList<>()).add(handler);
-        }
+		for (DomainEventHandler<? extends DomainEvent> handler : eventHandlers) {
+			Objects.requireNonNull(handler, "O handler não pode ser nulo");
+			handlers.computeIfAbsent(handler.eventType(), k -> new ArrayList<>()).add(handler);
+		}
 
-        // Make handlers map immutable after construction
-        handlers.replaceAll((k, v) -> Collections.unmodifiableList(v));
-        appLogger.info("DomainEventDispatcher initialized with {} handlers for {} event types",
-                eventHandlers.size(), handlers.size());
-    }
+		// Torna o mapa de handlers imutável após a construção
+		handlers.replaceAll((k, v) -> Collections.unmodifiableList(v));
+		appLogger.info("DomainEventDispatcher inicializado com {} handlers para {} tipos de evento",
+			eventHandlers.size(), handlers.size());
+	}
 
-    /**
-     * Dispatches a list of domain events to their registered handlers.
-     * <p>
-     * Events are processed sequentially. If a handler or event retrieval fails,
-     * the error is logged and processing continues with the next event.
-     * </p>
-     *
-     * @param events the list of events to dispatch; cannot be null but may be empty
-     * @throws NullPointerException if events list is null
-     */
-    public void dispatch(List<DomainEvent> events) {
-        Objects.requireNonNull(events, "Events list cannot be null");
+	/**
+	 * Despacha uma lista de eventos de domínio para seus handlers registrados.
+	 * <p>
+	 * Os eventos são processados sequencialmente. Se um handler falhar, o erro é registrado em log
+	 * e o processamento continua com o próximo evento.
+	 * </p>
+	 *
+	 * @param events a lista de eventos a despachar; não pode ser nula, mas pode estar vazia
+	 * @throws NullPointerException se a lista de eventos for nula
+	 */
+	@Override
+	public void dispatch(List<DomainEvent> events) {
+		Objects.requireNonNull(events, "A lista de eventos não pode ser nula");
 
-        if (events.isEmpty()) {
-            appLogger.debug("No events to dispatch");
-            return;
-        }
+		if (events.isEmpty()) {
+			appLogger.debug("Nenhum evento para despachar");
+			return;
+		}
 
-        appLogger.debug("Dispatching {} events", events.size());
+		appLogger.debug("Despachando {} eventos", events.size());
 
-        for (DomainEvent event : events) {
-            dispatchSingleEvent(event);
-        }
-    }
+		for (DomainEvent event : events) {
+			dispatchSingleEvent(event);
+		}
+	}
 
-    /**
-     * Returns the total number of registered handlers across all event types.
-     *
-     * @return the count of all handlers
-     */
-    public int getHandlerCount() {
-        return handlers.values().stream().mapToInt(List::size).sum();
-    }
+	/**
+	 * Retorna o número total de handlers registrados em todos os tipos de evento.
+	 *
+	 * @return a quantidade total de handlers
+	 */
+	public int getHandlerCount() {
+		return handlers.values().stream().mapToInt(List::size).sum();
+	}
 
-    /**
-     * Returns the number of event types that have registered handlers.
-     *
-     * @return the count of event types
-     */
-    public int getEventTypeCount() {
-        return handlers.size();
-    }
+	/**
+	 * Retorna o número de tipos de evento que possuem handlers registrados.
+	 *
+	 * @return a quantidade de tipos de evento
+	 */
+	public int getEventTypeCount() {
+		return handlers.size();
+	}
 
-    /**
-     * Dispatches a single event to all its registered handlers.
-     * <p>
-     * Logs a warning if no handlers are found for the event type.
-     * Errors during handler invocation are caught and logged without stopping other handlers.
-     * </p>
-     *
-     * @param event the event to dispatch; cannot be null
-     */
-    private void dispatchSingleEvent(DomainEvent event) {
-        Objects.requireNonNull(event, "Event cannot be null");
+	/**
+	 * Despacha um único evento para todos os seus handlers registrados.
+	 * <p>
+	 * Registra um aviso em log se nenhum handler for encontrado para o tipo de evento. Erros
+	 * durante a invocação dos handlers são capturados e registrados sem interromper os demais
+	 * handlers.
+	 * </p>
+	 *
+	 * @param event o evento a despachar; não pode ser nulo
+	 */
+	private void dispatchSingleEvent(DomainEvent event) {
+		List<DomainEventHandler<? extends DomainEvent>> eventHandlers =
+			handlers.getOrDefault(event.getClass(), EMPTY_HANDLER_LIST);
 
-        try {
-            List<DomainEventHandler<? extends DomainEvent>> eventHandlers =
-                    handlers.getOrDefault(event.getClass(), EMPTY_HANDLER_LIST);
+		if (eventHandlers.isEmpty()) {
+			appLogger.warn("Nenhum handler encontrado para o tipo de evento: {}",
+				event.getClass().getSimpleName());
+			return;
+		}
 
-            if (eventHandlers.isEmpty()) {
-                appLogger.warn("No handlers found for event type: {}",
-                        event.getClass().getSimpleName());
-                return;
-            }
+		appLogger.debug("Processando evento {} com {} handlers",
+			event.getClass().getSimpleName(), eventHandlers.size());
 
-            appLogger.debug("Processing event {} with {} handlers",
-                    event.getClass().getSimpleName(), eventHandlers.size());
+		for (DomainEventHandler<? extends DomainEvent> handler : eventHandlers) {
+			handleEventWithHandler(event, handler);
+		}
+	}
 
-            for (DomainEventHandler<? extends DomainEvent> handler : eventHandlers) {
-                handleEventWithHandler(event, handler);
-            }
-        } catch (Exception e) {
-            appLogger.error("Unexpected error processing event {}: {}",
-                    e, e.getMessage());
-        }
-    }
-
-    /**
-     * Invokes a specific handler with the given event.
-     * <p>
-     * Any exceptions thrown by the handler are caught, logged, and suppressed
-     * to prevent interrupting other handler executions.
-     * </p>
-     *
-     * @param event   the event to handle
-     * @param handler the handler to invoke
-     */
-    @SuppressWarnings("unchecked")
-    private void handleEventWithHandler(DomainEvent event, DomainEventHandler<? extends DomainEvent> handler) {
-        try {
-            ((DomainEventHandler<DomainEvent>) handler).handle(event);
-        } catch (Exception e) {
-            appLogger.error("Error handling event {} with handler {}: {}",
-                    e, event.getClass().getSimpleName(),
-                    handler.getClass().getSimpleName(),
-                    e.getMessage());
-        }
-    }
+	/**
+	 * Invoca um handler específico com o evento fornecido.
+	 * <p>
+	 * Qualquer exceção lançada pelo handler é capturada, registrada em log e suprimida para não
+	 * interromper a execução dos demais handlers.
+	 * </p>
+	 *
+	 * @param event   o evento a ser tratado
+	 * @param handler o handler a ser invocado
+	 */
+	@SuppressWarnings("unchecked")
+	private void handleEventWithHandler(DomainEvent event,
+		DomainEventHandler<? extends DomainEvent> handler) {
+		try {
+			((DomainEventHandler<DomainEvent>) handler).handle(event);
+		} catch (Exception e) {
+			appLogger.error("Error handling event {} with handler {}: {}",
+				e,
+				event.getClass().getSimpleName(),
+				handler.getClass().getSimpleName(),
+				e.getMessage());
+		}
+	}
 }

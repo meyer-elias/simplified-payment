@@ -5,22 +5,22 @@ import com.eliasmeyer.sp.domain.ports.out.transferencia.TransferenciaNotificador
 import com.eliasmeyer.sp.domain.shared.DomainEventHandler;
 
 public class TransferenciaRealizadaHandler implements
-    DomainEventHandler<TransferenciaRealizadaEvento> {
+	DomainEventHandler<TransferenciaRealizadaEvento> {
 
-  private final TransferenciaNotificadorOutputPort transferenciaNotificadorOutputPort;
+	private final TransferenciaNotificadorOutputPort transferenciaNotificadorOutputPort;
 
-  public TransferenciaRealizadaHandler(
-      TransferenciaNotificadorOutputPort transferenciaNotificadorOutputPort) {
-    this.transferenciaNotificadorOutputPort = transferenciaNotificadorOutputPort;
-  }
+	public TransferenciaRealizadaHandler(
+		TransferenciaNotificadorOutputPort transferenciaNotificadorOutputPort) {
+		this.transferenciaNotificadorOutputPort = transferenciaNotificadorOutputPort;
+	}
 
-  @Override
-  public Class<TransferenciaRealizadaEvento> eventType() {
-    return TransferenciaRealizadaEvento.class;
-  }
+	@Override
+	public Class<TransferenciaRealizadaEvento> eventType() {
+		return TransferenciaRealizadaEvento.class;
+	}
 
-  @Override
-  public void handle(TransferenciaRealizadaEvento event) {
-    transferenciaNotificadorOutputPort.notificar(event.transferencia());
-  }
+	@Override
+	public void handle(TransferenciaRealizadaEvento event) {
+		transferenciaNotificadorOutputPort.notificar(event.transferencia());
+	}
 }

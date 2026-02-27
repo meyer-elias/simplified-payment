@@ -8,45 +8,45 @@ import java.util.Objects;
 /**
  * Classe base genérica para todas as Entidades no domínio.
  *
- * @param <T> Tipo do identificador (deve implementar Identifier)
+ * @param <ID> Tipo do identificador (deve implementar Identifier)
  */
-public abstract class Entity<T extends Identifier<?>> {
+public abstract class Entity<ID extends Identifier<?>> {
 
-  private final T t;
+	protected final ID ID;
 
-  protected Entity(T id) {
-    Objects.requireNonNull(id, "Id não pode ser nulo");
-    this.t = id;
-  }
+	protected Entity(ID id) {
+		Objects.requireNonNull(id, "Id não pode ser nulo");
+		this.ID = id;
+	}
 
-  public T getId() {
-    return t;
-  }
+	public ID getId() {
+		return ID;
+	}
 
-  public <R extends Serializable & Comparable<R>> R getIdValue() {
-    return (R) t.getValue();
-  }
+	public <R extends Serializable & Comparable<R>> R getIdValue() {
+		return (R) ID.getValue();
+	}
 
-  @Override
-  public boolean equals(Object obj) {
-      if (this == obj) {
-          return true;
-      }
-      if (obj == null || getClass() != obj.getClass()) {
-          return false;
-      }
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null || getClass() != obj.getClass()) {
+			return false;
+		}
 
-    Entity<?> other = (Entity<?>) obj;
-    return Objects.equals(t, other.t);
-  }
+		Entity<?> other = (Entity<?>) obj;
+		return Objects.equals(ID, other.ID);
+	}
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(t);
-  }
+	@Override
+	public int hashCode() {
+		return Objects.hash(ID);
+	}
 
-  @Override
-  public String toString() {
-    return getClass().getSimpleName() + "[id=" + t + "]";
-  }
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + "[id=" + ID + "]";
+	}
 }

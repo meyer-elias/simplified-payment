@@ -5,6 +5,6 @@ import com.eliasmeyer.sp.domain.shared.DomainEvent;
 import java.time.LocalDateTime;
 
 public record TransferenciaCanceladaEvento(Transferencia transferencia,
-                                           LocalDateTime occurredOn) implements DomainEvent {
+										   LocalDateTime occurredOn) implements DomainEvent {
 
 }
