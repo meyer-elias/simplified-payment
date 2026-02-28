@@ -1,6 +1,7 @@
 package com.eliasmeyer.sp.application.usecase.user;
 
 import com.eliasmeyer.sp.application.exception.RegistradorUsuarioIndisponivelException;
+import com.eliasmeyer.sp.application.ports.TransactionManager;
 import com.eliasmeyer.sp.application.shared.logging.AppLogger;
 import com.eliasmeyer.sp.domain.model.usuario.Documento;
 import com.eliasmeyer.sp.domain.model.usuario.DocumentoFactory;
@@ -24,12 +25,14 @@ public class CriarUsuarioUseCase implements CriarUsuarioInputPort {
 	private final UsuarioOutputPort usuarioOutputPort;
 	private final PasswordEncoder passwordEncoder;
 	private final AppLogger appLogger;
+	private final TransactionManager transactionManager;
 
 	public CriarUsuarioUseCase(UsuarioOutputPort usuarioOutputPort, PasswordEncoder passwordEncoder,
-		AppLogger appLogger) {
+		AppLogger appLogger, TransactionManager transactionManager) {
 		this.usuarioOutputPort = usuarioOutputPort;
 		this.passwordEncoder = passwordEncoder;
 		this.appLogger = appLogger;
+		this.transactionManager = transactionManager;
 	}
 
 	@Override
@@ -55,13 +58,16 @@ public class CriarUsuarioUseCase implements CriarUsuarioInputPort {
 		String senhaHasheada = passwordEncoder.encode(comando.senha());
 		Usuario novoUsuario = UsuarioFactory.criar(documento, nome, email, senhaHasheada);
 
-		try {
-			// Persiste usuário
-			usuarioOutputPort.salvar(novoUsuario);
-		} catch (Exception e) {
-			appLogger.error("Erro ao registrar usuário.", e);
-			throw new RegistradorUsuarioIndisponivelException("Erro ao registrar usuário.", e);
-		}
+		transactionManager.execute(() -> {
+			try {
+				// Persiste usuário
+				usuarioOutputPort.salvar(novoUsuario);
+			} catch (Exception ex) {
+				appLogger.error("Erro ao registrar usuário.", ex);
+				throw new RegistradorUsuarioIndisponivelException("Erro ao registrar usuário.", ex);
+			}
+			return null;
+		});
 	}
 }
 

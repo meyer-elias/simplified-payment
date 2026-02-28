@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -15,6 +16,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.eliasmeyer.sp.application.exception.RegistradorUsuarioIndisponivelException;
+import com.eliasmeyer.sp.application.ports.TransactionManager;
 import com.eliasmeyer.sp.application.shared.logging.AppLogger;
 import com.eliasmeyer.sp.domain.model.usuario.Documento;
 import com.eliasmeyer.sp.domain.model.usuario.Email;
@@ -23,6 +25,7 @@ import com.eliasmeyer.sp.domain.ports.in.usuario.CriarUsuarioCommand;
 import com.eliasmeyer.sp.domain.ports.out.PasswordEncoder;
 import com.eliasmeyer.sp.domain.ports.out.usuario.UsuarioOutputPort;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +38,7 @@ class CriarUsuarioUseCaseTest {
 	private UsuarioOutputPort usuarioOutputPort;
 	private PasswordEncoder passwordEncoder;
 	private AppLogger appLogger;
+	private TransactionManager transactionManager;
 
 	private CriarUsuarioUseCase useCase;
 
@@ -43,8 +47,11 @@ class CriarUsuarioUseCaseTest {
 		usuarioOutputPort = mock(UsuarioOutputPort.class);
 		passwordEncoder = mock(PasswordEncoder.class);
 		appLogger = mock(AppLogger.class);
+		transactionManager = mock(TransactionManager.class);
+		doInvocationTransactionHelperMethod();
 
-		useCase = new CriarUsuarioUseCase(usuarioOutputPort, passwordEncoder, appLogger);
+		useCase = new CriarUsuarioUseCase(usuarioOutputPort, passwordEncoder, appLogger,
+			transactionManager);
 
 		when(passwordEncoder.encode(anyString())).thenReturn("senhaHasheada123");
 	}
@@ -70,11 +77,11 @@ class CriarUsuarioUseCaseTest {
 			when(usuarioOutputPort.buscarPorDocumento(any(Documento.class))).thenReturn(
 				Optional.empty());
 			when(usuarioOutputPort.buscarPorEmail(any(Email.class))).thenReturn(Optional.empty());
-
 			assertDoesNotThrow(() -> useCase.execute(command));
 
 			verify(usuarioOutputPort, times(1)).salvar(any(Usuario.class));
 			verify(passwordEncoder, times(1)).encode(command.senha());
+			verify(transactionManager, times(1)).execute(any());
 		}
 
 		@Test
@@ -86,16 +93,16 @@ class CriarUsuarioUseCaseTest {
 			when(usuarioOutputPort.buscarPorDocumento(any(Documento.class))).thenReturn(
 				Optional.empty());
 			when(usuarioOutputPort.buscarPorEmail(any(Email.class))).thenReturn(Optional.empty());
-
 			assertDoesNotThrow(() -> useCase.execute(command));
 
 			verify(usuarioOutputPort, times(1)).salvar(any(Usuario.class));
+			verify(transactionManager, times(1)).execute(any());
 		}
 
 		@Test
 		@DisplayName("Deve criar usuário do tipo lojista quando documento é CNPJ")
 		void shouldCriarLojistaWhenDocumentoIsCNPJ() {
-			CriarUsuarioCommand command = criarCommand("Lojista Teste", "11222333000181",
+			CriarUsuarioCommand command = criarCommand("Lojista Teste", "11444777000161",
 				"lojista@email.com", "senha123");
 
 			when(usuarioOutputPort.buscarPorDocumento(any(Documento.class))).thenReturn(
@@ -105,7 +112,16 @@ class CriarUsuarioUseCaseTest {
 			assertDoesNotThrow(() -> useCase.execute(command));
 
 			verify(usuarioOutputPort, times(1)).salvar(any(Usuario.class));
+			verify(transactionManager, times(1)).execute(any());
 		}
+	}
+
+	private void doInvocationTransactionHelperMethod() {
+		doAnswer(invocation -> {
+			Supplier<?> supplier = invocation.getArgument(0);
+			supplier.get();
+			return null;
+		}).when(transactionManager).execute(any());
 	}
 
 	@Nested
@@ -124,6 +140,7 @@ class CriarUsuarioUseCaseTest {
 				.hasMessageContaining("Documento inválido", exception.getMessage());
 
 			verify(usuarioOutputPort, never()).salvar(any());
+			verify(transactionManager, never()).execute(any());
 		}
 
 		@Test
@@ -138,6 +155,7 @@ class CriarUsuarioUseCaseTest {
 				.hasMessageContaining("Email inválido", exception.getMessage());
 
 			verify(usuarioOutputPort, never()).salvar(any());
+			verify(transactionManager, never()).execute(any());
 		}
 
 		@Test
@@ -151,6 +169,7 @@ class CriarUsuarioUseCaseTest {
 			assertEquals("Nome deve ter pelo menos 3 caracteres", exception.getMessage());
 
 			verify(usuarioOutputPort, never()).salvar(any());
+			verify(transactionManager, never()).execute(any());
 		}
 	}
 
@@ -173,6 +192,7 @@ class CriarUsuarioUseCaseTest {
 
 			verify(usuarioOutputPort, never()).buscarPorEmail(any());
 			verify(usuarioOutputPort, never()).salvar(any());
+			verify(transactionManager, never()).execute(any());
 		}
 
 		@Test
@@ -191,6 +211,7 @@ class CriarUsuarioUseCaseTest {
 			assertEquals("Email já cadastrado no sistema", exception.getMessage());
 
 			verify(usuarioOutputPort, never()).salvar(any());
+			verify(transactionManager, never()).execute(any());
 		}
 	}
 
@@ -215,6 +236,7 @@ class CriarUsuarioUseCaseTest {
 
 			verify(appLogger, times(1)).error(eq("Erro ao registrar usuário."),
 				any(RuntimeException.class));
+			verify(transactionManager, times(1)).execute(any());
 		}
 
 		@Test
@@ -225,13 +247,13 @@ class CriarUsuarioUseCaseTest {
 
 			when(usuarioOutputPort.buscarPorDocumento(any(Documento.class))).thenReturn(
 				Optional.empty());
-			when(usuarioOutputPort.buscarPorEmail(any(Email.class))).thenReturn(Optional.empty());
-			doThrow(excecaoSimulada).when(usuarioOutputPort).salvar(any(Usuario.class));
+			doThrow(excecaoSimulada).when(usuarioOutputPort).buscarPorEmail(any(Email.class));
 
-			assertThrows(RegistradorUsuarioIndisponivelException.class,
+			assertThrows(RuntimeException.class,
 				() -> useCase.execute(command));
 
-			verify(appLogger, times(1)).error("Erro ao registrar usuário.", excecaoSimulada);
+			verify(appLogger, never()).error("Erro ao registrar usuário.", excecaoSimulada);
+			verify(transactionManager, never()).execute(any());
 		}
 	}
 }

@@ -4,6 +4,7 @@ import com.eliasmeyer.sp.application.exception.AutorizadorIndisponivelException;
 import com.eliasmeyer.sp.application.exception.TransferenciaIllegalException;
 import com.eliasmeyer.sp.application.exception.TransferenciaIndisponivelException;
 import com.eliasmeyer.sp.application.exception.TransferenciaNaoAutorizadaException;
+import com.eliasmeyer.sp.application.ports.TransactionManager;
 import com.eliasmeyer.sp.application.shared.logging.AppLogger;
 import com.eliasmeyer.sp.domain.exception.LojistaNaoPodeTransferirDinheiroException;
 import com.eliasmeyer.sp.domain.exception.SaldoInsuficienteException;
@@ -30,15 +31,19 @@ public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPor
 
 	private final AppLogger appLogger;
 
+	private final TransactionManager transactionManager;
+
 	public EfetuarTransferenciaUseCase(
 		TransferenciaAutorizadorOutputPort transferenciaAutorizadorOutputPort,
 		TransferenciaOutputPort transferenciaOutputPort, UsuarioOutputPort usuarioOutputPort,
-		DomainEventDispatcher domainEventDispatcher, AppLogger appLogger) {
+		DomainEventDispatcher domainEventDispatcher, AppLogger appLogger,
+		TransactionManager transactionManager) {
 		this.transferenciaAutorizadorOutputPort = transferenciaAutorizadorOutputPort;
 		this.transferenciaOutputPort = transferenciaOutputPort;
 		this.usuarioOutputPort = usuarioOutputPort;
 		this.domainEventDispatcher = domainEventDispatcher;
 		this.appLogger = appLogger;
+		this.transactionManager = transactionManager;
 	}
 
 	@Override
@@ -57,64 +62,61 @@ public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPor
 
 		var transferencia = new Transferencia(uPagador, uRecebedor, quantia);
 
-		// 1. Cria e reserva a transferência
-		try {
-			transferencia.reservar();
-			transferenciaOutputPort.salvar(transferencia);
-			transferencia.clearEvents();
-		} catch (Exception e) {
-			// se falhar aqui, nada foi persistido, sem inconsistência
-			throw new TransferenciaIndisponivelException(
-				String.format("Não foi possível reservar a transferência para o pagador [%s]: %s",
-					idPagador, e.getMessage()), e);
-		}
-
-		try {
-			// 2. Verifica autorização
-			boolean autorizado = transferenciaAutorizadorOutputPort.isAutorizado(idPagador);
-
-			if (autorizado) {
-				// 3a. Realiza a transferência
-				transferencia.realizar();
-			} else {
-				// 3b. Cancela a reserva
-				transferencia.cancelar();
+		// FASE 1: Reserva dentro da transação — bloqueia saldo no BD antes de qualquer chamada externa
+		transactionManager.execute(() -> {
+			try {
+				transferencia.reservar();
+				transferenciaOutputPort.salvar(transferencia);
+			} catch (LojistaNaoPodeTransferirDinheiroException | SaldoInsuficienteException e) {
+				throw new TransferenciaIllegalException(
+					"Transferência inválida por regra de negócio.", e);
+			} catch (TransferenciaIllegalException e) {
+				throw e;
+			} catch (Exception e) {
+				throw new TransferenciaIndisponivelException("Falha técnica ao reservar.", e);
 			}
+			return null;
+		});
 
-			// 4. Persiste o estado final e salva os usuários (saldos atualizados)
-			transferenciaOutputPort.salvar(transferencia);
-			usuarioOutputPort.salvar(uPagador);
-			usuarioOutputPort.salvar(uRecebedor);
+		// FASE 2: Autorizador FORA da transação — chamada HTTP não segura conexão de BD
+		boolean autorizado;
+		try {
+			autorizado = checkAutorizador(idPagador);
 		} catch (AutorizadorIndisponivelException e) {
-			// Pressupõe quando indisponível não está autorizado
 			transferencia.cancelar();
 			salvarBestEffort(transferencia);
 			throw new TransferenciaIndisponivelException("Serviço do autorizador indisponível", e);
-		} catch (LojistaNaoPodeTransferirDinheiroException | SaldoInsuficienteException e) {
-			transferencia.cancelar();
-			salvarBestEffort(transferencia);
-			throw new TransferenciaIllegalException(
-				"Transferência cancelada devido restrição da regra de negócio.", e);
-		} catch (Exception e) {
-			// Só tenta marcar como FALHADA se o estado ainda for RESERVADA.
-			// Se realizar() já foi chamado com sucesso e apenas o salvar() falhou,
-			// o estado já é REALIZADA e a transição para FALHADA não é permitida.
-			if (transferencia.isReservada()) {
-				transferencia.falhar();
-			}
-			salvarBestEffort(transferencia);
-			throw new TransferenciaIndisponivelException("Falha técnica inesperada", e);
-		} finally {
-			// 5. bloco finally garante que os eventos sejam despachados e limpos em qualquer cenário (sucesso ou erro)
-			domainEventDispatcher.dispatch(transferencia.domainEvents());
-			transferencia.clearEvents();
 		}
 
-		// 6. Lança exceção após o fluxo completo
-		if (transferencia.isCancelada()) {
-			throw new TransferenciaNaoAutorizadaException(
-				String.format("Usuário [%s] não autorizado para transferir dinheiro.", idPagador));
-		}
+		// FASE 3: Captura — realiza ou cancela dentro de nova transação
+		transactionManager.execute(() -> {
+			try {
+				if (autorizado) {
+					transferencia.realizar();
+				} else {
+					transferencia.cancelar();
+				}
+				transferenciaOutputPort.salvar(transferencia);
+				usuarioOutputPort.salvar(uPagador);
+				usuarioOutputPort.salvar(uRecebedor);
+			} catch (Exception e) {
+				if (transferencia.isReservada()) {
+					transferencia.falhar();
+				}
+				salvarBestEffort(transferencia);
+				throw new TransferenciaIndisponivelException("Falha técnica inesperada.", e);
+			} finally {
+				domainEventDispatcher.dispatch(transferencia.domainEvents());
+				transferencia.clearEvents();
+			}
+
+			if (transferencia.isCancelada()) {
+				throw new TransferenciaNaoAutorizadaException(
+					String.format("Usuário [%s] não autorizado para transferir dinheiro.",
+						idPagador));
+			}
+			return null;
+		});
 	}
 
 	/**
@@ -126,9 +128,20 @@ public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPor
 	 */
 	private void salvarBestEffort(Transferencia transferencia) {
 		try {
-			transferenciaOutputPort.salvar(transferencia);
+			transactionManager.execute(() -> {
+				transferenciaOutputPort.salvar(transferencia);
+				return null;
+			});
 		} catch (Exception saveEx) {
 			appLogger.error("Error ao gravar no BD", saveEx);
+		}
+	}
+
+	private boolean checkAutorizador(UsuarioId idPagador) {
+		try {
+			return transferenciaAutorizadorOutputPort.isAutorizado(idPagador);
+		} catch (Exception ex) {
+			throw new AutorizadorIndisponivelException("Serviço do autorizador indisponível", ex);
 		}
 	}
 }

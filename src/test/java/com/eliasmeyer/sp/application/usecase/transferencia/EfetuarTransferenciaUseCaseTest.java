@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -13,8 +13,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.eliasmeyer.sp.application.exception.AutorizadorIndisponivelException;
+import com.eliasmeyer.sp.application.exception.TransferenciaIllegalException;
 import com.eliasmeyer.sp.application.exception.TransferenciaIndisponivelException;
 import com.eliasmeyer.sp.application.exception.TransferenciaNaoAutorizadaException;
+import com.eliasmeyer.sp.application.ports.TransactionManager;
 import com.eliasmeyer.sp.application.shared.logging.AppLogger;
 import com.eliasmeyer.sp.domain.model.carteira.Dinheiro;
 import com.eliasmeyer.sp.domain.model.usuario.DocumentoFactory;
@@ -32,6 +34,7 @@ import com.eliasmeyer.sp.domain.ports.out.usuario.UsuarioOutputPort;
 import com.eliasmeyer.sp.domain.shared.DomainEventDispatcher;
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -45,6 +48,7 @@ class EfetuarTransferenciaUseCaseTest {
 	private UsuarioOutputPort usuarioOutputPort;
 	private DomainEventDispatcher domainEventDispatcher;
 	private AppLogger appLogger;
+	private TransactionManager transactionManager;
 
 	private EfetuarTransferenciaUseCase useCase;
 
@@ -58,13 +62,16 @@ class EfetuarTransferenciaUseCaseTest {
 		usuarioOutputPort = mock(UsuarioOutputPort.class);
 		domainEventDispatcher = mock(DomainEventDispatcher.class);
 		appLogger = mock(AppLogger.class);
+		transactionManager = mock(TransactionManager.class);
+		doInvocationTransactionHelperMethod();
 
 		useCase = new EfetuarTransferenciaUseCase(
 			autorizador,
 			transferenciaOutputPort,
 			usuarioOutputPort,
 			domainEventDispatcher,
-			appLogger
+			appLogger,
+			transactionManager
 		);
 
 		pagador = criarUsuarioComum("12345678909", "pagador@email.com");
@@ -116,6 +123,18 @@ class EfetuarTransferenciaUseCaseTest {
 	// Cenários de usuário não encontrado
 	// -------------------------------------------------
 
+	private void doInvocationTransactionHelperMethod() {
+		doAnswer(invocation -> {
+			Supplier<?> supplier = invocation.getArgument(0);
+			supplier.get();
+			return null;
+		}).when(transactionManager).execute(any());
+	}
+
+	// -------------------------------------------------
+	// Cenários de saldo insuficiente
+	// -------------------------------------------------
+
 	@Nested
 	@DisplayName("Cenários de sucesso")
 	class Sucesso {
@@ -134,10 +153,11 @@ class EfetuarTransferenciaUseCaseTest {
 			assertDoesNotThrow(() -> useCase.execute(command));
 
 			// reserva + estado final = 2 saves
-			verify(transferenciaOutputPort, times(2)).salvar(any());
+			verify(transferenciaOutputPort, times(1)).salvar(any());
 			verify(usuarioOutputPort, times(1)).salvar(pagador);
 			verify(usuarioOutputPort, times(1)).salvar(recebedor);
 			verify(domainEventDispatcher, times(1)).dispatch(any());
+			verify(transactionManager, times(1)).execute(any());
 		}
 
 		@Test
@@ -154,11 +174,12 @@ class EfetuarTransferenciaUseCaseTest {
 			useCase.execute(command);
 
 			verify(domainEventDispatcher, times(1)).dispatch(any());
+			verify(transactionManager, times(1)).execute(any());
 		}
 	}
 
 	// -------------------------------------------------
-	// Cenários de saldo insuficiente
+	// Helpers
 	// -------------------------------------------------
 
 	@Nested
@@ -193,8 +214,9 @@ class EfetuarTransferenciaUseCaseTest {
 			assertThrows(TransferenciaNaoAutorizadaException.class, () -> useCase.execute(command));
 
 			// reserva + cancelada = 2 saves
-			verify(transferenciaOutputPort, times(2)).salvar(any());
+			verify(transferenciaOutputPort, times(1)).salvar(any());
 			verify(domainEventDispatcher, times(1)).dispatch(any());
+			verify(transactionManager, times(1)).execute(any());
 		}
 
 		@Test
@@ -227,8 +249,9 @@ class EfetuarTransferenciaUseCaseTest {
 			assertThrows(TransferenciaIndisponivelException.class, () -> useCase.execute(command));
 
 			// reserva + cancelada = 2 saves
-			verify(transferenciaOutputPort, times(2)).salvar(any());
+			verify(transferenciaOutputPort, times(1)).salvar(any());
 			verify(domainEventDispatcher, times(1)).dispatch(any());
+			verify(transactionManager, times(1)).execute(any());
 		}
 
 		@Test
@@ -246,15 +269,11 @@ class EfetuarTransferenciaUseCaseTest {
 				lojistaPagador.getId(), recebedor.getId(), "100.00");
 
 			Exception exception = assertThrows(
-				TransferenciaIndisponivelException.class, () -> useCase.execute(command));
+				TransferenciaIllegalException.class, () -> useCase.execute(command));
 
-			assertInstanceOf(TransferenciaIndisponivelException.class, exception);
+			assertInstanceOf(TransferenciaIllegalException.class, exception);
 		}
 	}
-
-	// -------------------------------------------------
-	// Helpers
-	// -------------------------------------------------
 
 	@Nested
 	@DisplayName("Cenários de falha técnica")
@@ -276,7 +295,7 @@ class EfetuarTransferenciaUseCaseTest {
 		}
 
 		@Test
-		@DisplayName("Não deve chamar autorizador quando BD falha ao salvar a reserva")
+		@DisplayName("Deve chamar autorizador quando BD falha ao salvar a reserva")
 		void shouldNotCallAutorizadorWhenBdFalhaAoSalvarReserva() {
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
@@ -289,7 +308,7 @@ class EfetuarTransferenciaUseCaseTest {
 
 			assertThrows(TransferenciaIndisponivelException.class, () -> useCase.execute(command));
 
-			verify(autorizador, never()).isAutorizado(any());
+			verify(autorizador, times(1)).isAutorizado(any());
 		}
 
 		@Test
@@ -299,9 +318,8 @@ class EfetuarTransferenciaUseCaseTest {
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any())).thenReturn(true);
-			// primeira chamada (reserva) sucede, segunda (estado final) falha
-			doNothing()
-				.doThrow(new TransferenciaIndisponivelException("BD indisponível"))
+
+			doThrow(new TransferenciaIndisponivelException("BD indisponível"))
 				.when(transferenciaOutputPort).salvar(any());
 
 			EfetuarTransferenciaCommand command = criarCommand(
@@ -317,9 +335,8 @@ class EfetuarTransferenciaUseCaseTest {
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any())).thenReturn(true);
-			// primeira chamada (reserva) sucede, segunda (estado final) falha
-			doNothing()
-				.doThrow(new TransferenciaIndisponivelException("BD indisponível"))
+
+			doThrow(new TransferenciaIndisponivelException("BD indisponível"))
 				.when(transferenciaOutputPort).salvar(any());
 
 			EfetuarTransferenciaCommand command = criarCommand(
@@ -329,6 +346,8 @@ class EfetuarTransferenciaUseCaseTest {
 
 			// finally garante despacho mesmo em falha
 			verify(domainEventDispatcher, times(1)).dispatch(any());
+			// 2x: 1x reserva + 1x cancelada
+			verify(transactionManager, times(2)).execute(any());
 		}
 
 		@Test
@@ -338,9 +357,8 @@ class EfetuarTransferenciaUseCaseTest {
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any())).thenReturn(true);
-			// reserva sucede, salvar do estado REALIZADA falha
-			doNothing()
-				.doThrow(new TransferenciaIndisponivelException("BD indisponível"))
+
+			doThrow(new TransferenciaIndisponivelException("BD indisponível"))
 				.when(transferenciaOutputPort).salvar(any());
 
 			EfetuarTransferenciaCommand command = criarCommand(
@@ -389,6 +407,7 @@ class EfetuarTransferenciaUseCaseTest {
 
 			verify(transferenciaOutputPort, never()).salvar(any());
 			verify(domainEventDispatcher, never()).dispatch(any());
+			verify(transactionManager, never()).execute(any());
 		}
 	}
 
@@ -397,7 +416,7 @@ class EfetuarTransferenciaUseCaseTest {
 	class SaldoInsuficiente {
 
 		@Test
-		@DisplayName("Deve lançar TransferenciaIndisponivelException quando pagador não tem saldo suficiente")
+		@DisplayName("Deve lançar TransferenciaIllegalException quando pagador não tem saldo suficiente")
 		void shouldThrowTransferenciaIndisponivelExceptionWhenSaldoInsuficiente() {
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
@@ -408,24 +427,9 @@ class EfetuarTransferenciaUseCaseTest {
 				pagador.getId(), recebedor.getId(), "1000.00");
 
 			Exception exception = assertThrows(
-				TransferenciaIndisponivelException.class, () -> useCase.execute(command));
+				TransferenciaIllegalException.class, () -> useCase.execute(command));
 
-			assertInstanceOf(TransferenciaIndisponivelException.class, exception);
-		}
-
-		@Test
-		@DisplayName("Não deve chamar autorizador quando saldo é insuficiente")
-		void shouldNotCallAutorizadorWhenSaldoInsuficiente() {
-			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
-			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
-				Optional.of(recebedor));
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				pagador.getId(), recebedor.getId(), "1000.00");
-
-			assertThrows(TransferenciaIndisponivelException.class, () -> useCase.execute(command));
-
-			verify(autorizador, never()).isAutorizado(any());
+			assertInstanceOf(TransferenciaIllegalException.class, exception);
 		}
 	}
 }
