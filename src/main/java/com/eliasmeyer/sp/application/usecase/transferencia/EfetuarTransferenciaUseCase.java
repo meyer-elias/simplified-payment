@@ -67,12 +67,18 @@ public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPor
 			try {
 				transferencia.reservar();
 				transferenciaOutputPort.salvar(transferencia);
+				usuarioOutputPort.salvar(uPagador);
 			} catch (LojistaNaoPodeTransferirDinheiroException | SaldoInsuficienteException e) {
 				throw new TransferenciaIllegalException(
 					"Transferência inválida por regra de negócio.", e);
 			} catch (TransferenciaIllegalException e) {
 				throw e;
 			} catch (Exception e) {
+				if (transferencia.isReservada()) {
+					transferencia.cancelar();
+					salvarBestEffort(transferencia);
+					usuarioOutputPort.salvar(uPagador);
+				}
 				throw new TransferenciaIndisponivelException("Falha técnica ao reservar.", e);
 			}
 			return null;

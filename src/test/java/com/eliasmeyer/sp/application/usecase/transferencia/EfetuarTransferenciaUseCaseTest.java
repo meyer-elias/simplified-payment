@@ -152,16 +152,17 @@ class EfetuarTransferenciaUseCaseTest {
 
 			assertDoesNotThrow(() -> useCase.execute(command));
 
-			// reserva + estado final = 2 saves
-			verify(transferenciaOutputPort, times(1)).salvar(any());
-			verify(usuarioOutputPort, times(1)).salvar(pagador);
+			// FASE 1: salva reserva + pagador; FASE 3: salva realizada + pagador + recebedor = 2 saves no transferenciaOutputPort
+			verify(transferenciaOutputPort, times(2)).salvar(any());
+			verify(usuarioOutputPort, times(2)).salvar(pagador);
 			verify(usuarioOutputPort, times(1)).salvar(recebedor);
 			verify(domainEventDispatcher, times(1)).dispatch(any());
-			verify(transactionManager, times(1)).execute(any());
+			// FASE 1 + FASE 3 = 2 execuções do transactionManager
+			verify(transactionManager, times(2)).execute(any());
 		}
 
 		@Test
-		@DisplayName("Deve despachar eventos mesmo quando transferência é realizada")
+		@DisplayName("Deve despachar eventos ao final quando transferência é realizada")
 		void shouldDispatchEventsWhenTransferenciaRealizada() {
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
@@ -174,7 +175,8 @@ class EfetuarTransferenciaUseCaseTest {
 			useCase.execute(command);
 
 			verify(domainEventDispatcher, times(1)).dispatch(any());
-			verify(transactionManager, times(1)).execute(any());
+			// FASE 1 + FASE 3 = 2 execuções do transactionManager
+			verify(transactionManager, times(2)).execute(any());
 		}
 	}
 
@@ -213,10 +215,11 @@ class EfetuarTransferenciaUseCaseTest {
 
 			assertThrows(TransferenciaNaoAutorizadaException.class, () -> useCase.execute(command));
 
-			// reserva + cancelada = 2 saves
-			verify(transferenciaOutputPort, times(1)).salvar(any());
+			// FASE 1: salva reserva; FASE 3: salva cancelada = 2 saves
+			verify(transferenciaOutputPort, times(2)).salvar(any());
 			verify(domainEventDispatcher, times(1)).dispatch(any());
-			verify(transactionManager, times(1)).execute(any());
+			// FASE 1 + FASE 3 = 2 execuções do transactionManager
+			verify(transactionManager, times(2)).execute(any());
 		}
 
 		@Test
@@ -248,10 +251,11 @@ class EfetuarTransferenciaUseCaseTest {
 
 			assertThrows(TransferenciaIndisponivelException.class, () -> useCase.execute(command));
 
-			// reserva + cancelada = 2 saves
-			verify(transferenciaOutputPort, times(1)).salvar(any());
-			verify(domainEventDispatcher, times(1)).dispatch(any());
-			verify(transactionManager, times(1)).execute(any());
+			// FASE 1: salva reserva; salvarBestEffort: salva cancelada = 2 saves
+			verify(transferenciaOutputPort, times(2)).salvar(any());
+			verify(domainEventDispatcher, never()).dispatch(any());
+			// FASE 1 + salvarBestEffort = 2 execuções do transactionManager
+			verify(transactionManager, times(2)).execute(any());
 		}
 
 		@Test
@@ -295,7 +299,7 @@ class EfetuarTransferenciaUseCaseTest {
 		}
 
 		@Test
-		@DisplayName("Deve chamar autorizador quando BD falha ao salvar a reserva")
+		@DisplayName("Não deve chamar autorizador quando BD falha ao salvar a reserva")
 		void shouldNotCallAutorizadorWhenBdFalhaAoSalvarReserva() {
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
@@ -308,7 +312,7 @@ class EfetuarTransferenciaUseCaseTest {
 
 			assertThrows(TransferenciaIndisponivelException.class, () -> useCase.execute(command));
 
-			verify(autorizador, times(1)).isAutorizado(any());
+			verify(autorizador, never()).isAutorizado(any());
 		}
 
 		@Test
@@ -319,7 +323,9 @@ class EfetuarTransferenciaUseCaseTest {
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any())).thenReturn(true);
 
-			doThrow(new TransferenciaIndisponivelException("BD indisponível"))
+			// FASE 1 salva com sucesso; FASE 3 lança exceção
+			doAnswer(invocation -> null)
+				.doThrow(new TransferenciaIndisponivelException("BD indisponível"))
 				.when(transferenciaOutputPort).salvar(any());
 
 			EfetuarTransferenciaCommand command = criarCommand(
@@ -336,7 +342,9 @@ class EfetuarTransferenciaUseCaseTest {
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any())).thenReturn(true);
 
-			doThrow(new TransferenciaIndisponivelException("BD indisponível"))
+			// FASE 1 salva com sucesso; FASE 3 lança exceção — finally garante dispatch
+			doAnswer(invocation -> null)
+				.doThrow(new TransferenciaIndisponivelException("BD indisponível"))
 				.when(transferenciaOutputPort).salvar(any());
 
 			EfetuarTransferenciaCommand command = criarCommand(
@@ -344,10 +352,10 @@ class EfetuarTransferenciaUseCaseTest {
 
 			assertThrows(TransferenciaIndisponivelException.class, () -> useCase.execute(command));
 
-			// finally garante despacho mesmo em falha
+			// finally garante despacho mesmo em falha na FASE 3
 			verify(domainEventDispatcher, times(1)).dispatch(any());
-			// 2x: 1x reserva + 1x cancelada
-			verify(transactionManager, times(2)).execute(any());
+			// FASE 1 + FASE 3 + salvarBestEffort = 3 execuções do transactionManager
+			verify(transactionManager, times(3)).execute(any());
 		}
 
 		@Test
