@@ -2,7 +2,6 @@ package com.eliasmeyer.sp.application.usecase.user;
 
 import com.eliasmeyer.sp.application.exception.RegistradorUsuarioIndisponivelException;
 import com.eliasmeyer.sp.application.ports.TransactionManager;
-import com.eliasmeyer.sp.application.shared.logging.AppLogger;
 import com.eliasmeyer.sp.domain.model.usuario.Documento;
 import com.eliasmeyer.sp.domain.model.usuario.DocumentoFactory;
 import com.eliasmeyer.sp.domain.model.usuario.Email;
@@ -24,14 +23,12 @@ public class CriarUsuarioUseCase implements CriarUsuarioInputPort {
 
 	private final UsuarioOutputPort usuarioOutputPort;
 	private final PasswordEncoder passwordEncoder;
-	private final AppLogger appLogger;
 	private final TransactionManager transactionManager;
 
 	public CriarUsuarioUseCase(UsuarioOutputPort usuarioOutputPort, PasswordEncoder passwordEncoder,
-		AppLogger appLogger, TransactionManager transactionManager) {
+		TransactionManager transactionManager) {
 		this.usuarioOutputPort = usuarioOutputPort;
 		this.passwordEncoder = passwordEncoder;
-		this.appLogger = appLogger;
 		this.transactionManager = transactionManager;
 	}
 
@@ -63,8 +60,6 @@ public class CriarUsuarioUseCase implements CriarUsuarioInputPort {
 				// Persiste usuário
 				usuarioOutputPort.salvar(novoUsuario);
 			} catch (Exception ex) {
-				appLogger.error("Erro ao registrar usuário no BD. Documento: {}, Email: {}",
-					ex, documento, email);
 				throw new RegistradorUsuarioIndisponivelException("Erro ao registrar usuário.", ex);
 			}
 		});

@@ -1,7 +1,7 @@
 package com.eliasmeyer.sp.application.usecase.transferencia;
 
 import com.eliasmeyer.sp.application.ports.TransactionManager;
-import com.eliasmeyer.sp.application.shared.logging.AppLogger;
+import com.eliasmeyer.sp.application.shared.ApplicationException;
 import com.eliasmeyer.sp.domain.model.transferencia.Transferencia;
 import com.eliasmeyer.sp.domain.ports.out.transferencia.TransferenciaOutputPort;
 import com.eliasmeyer.sp.domain.ports.out.usuario.UsuarioOutputPort;
@@ -14,14 +14,11 @@ class Falhador {
 
 	private final TransferenciaOutputPort transferenciaOutputPort;
 
-	private final AppLogger appLogger;
-
 	Falhador(TransactionManager transactionManager, UsuarioOutputPort usuarioOutputPort,
-		TransferenciaOutputPort transferenciaOutputPort, AppLogger appLogger) {
+		TransferenciaOutputPort transferenciaOutputPort) {
 		this.transactionManager = transactionManager;
 		this.usuarioOutputPort = usuarioOutputPort;
 		this.transferenciaOutputPort = transferenciaOutputPort;
-		this.appLogger = appLogger;
 	}
 
 	/**
@@ -36,8 +33,10 @@ class Falhador {
 		try {
 			transferencia.falhar();
 		} catch (IllegalStateException ise) {
-			appLogger.error(
-				"Não foi possível marcar transferência como falhada — estado atual incompatível: {}",
+			throw new ApplicationException(
+				String.format(
+					"Não foi possível marcar transferência %s como falhada — estado atual incompatível",
+					transferencia.getId()),
 				ise);
 		}
 		tentarSalvarFalha(transferencia);
@@ -50,9 +49,11 @@ class Falhador {
 				usuarioOutputPort.salvar(transferencia.getPagador());
 			});
 		} catch (Exception saveEx) {
-			// BD fora: reversão em memória já foi feita; apenas registra para auditoria.
-			appLogger.error(
-				"Falha ao persistir estado de transferência falhada — reversão em memória garantida.",
+			// BD fora: reversão em memória já foi feita
+			throw new ApplicationException(
+				String.format(
+					"Falha ao persistir estado de transferência %s falhada — reversão em memória garantida.",
+					transferencia.getId()),
 				saveEx);
 		}
 	}

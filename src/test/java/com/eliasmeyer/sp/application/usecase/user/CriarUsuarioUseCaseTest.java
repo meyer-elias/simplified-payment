@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -17,7 +16,6 @@ import static org.mockito.Mockito.when;
 
 import com.eliasmeyer.sp.application.exception.RegistradorUsuarioIndisponivelException;
 import com.eliasmeyer.sp.application.ports.TransactionManager;
-import com.eliasmeyer.sp.application.shared.logging.AppLogger;
 import com.eliasmeyer.sp.domain.model.usuario.Documento;
 import com.eliasmeyer.sp.domain.model.usuario.Email;
 import com.eliasmeyer.sp.domain.model.usuario.Usuario;
@@ -36,7 +34,6 @@ class CriarUsuarioUseCaseTest {
 
 	private UsuarioOutputPort usuarioOutputPort;
 	private PasswordEncoder passwordEncoder;
-	private AppLogger appLogger;
 	private TransactionManager transactionManager;
 
 	private CriarUsuarioUseCase useCase;
@@ -45,12 +42,10 @@ class CriarUsuarioUseCaseTest {
 	void setUp() {
 		usuarioOutputPort = mock(UsuarioOutputPort.class);
 		passwordEncoder = mock(PasswordEncoder.class);
-		appLogger = mock(AppLogger.class);
 		transactionManager = mock(TransactionManager.class);
 		doInvocationTransactionHelperMethod();
 
-		useCase = new CriarUsuarioUseCase(usuarioOutputPort, passwordEncoder, appLogger,
-			transactionManager);
+		useCase = new CriarUsuarioUseCase(usuarioOutputPort, passwordEncoder, transactionManager);
 
 		when(passwordEncoder.encode(anyString())).thenReturn("senhaHasheada123");
 	}
@@ -62,6 +57,14 @@ class CriarUsuarioUseCaseTest {
 
 	private CriarUsuarioCommand criarCommandValido() {
 		return criarCommand("Usuario Teste", "12345678909", "teste@email.com", "senha123");
+	}
+
+	private void doInvocationTransactionHelperMethod() {
+		doAnswer(invocation -> {
+			Runnable action = invocation.getArgument(0);
+			action.run();
+			return null;
+		}).when(transactionManager).execute(any(Runnable.class));
 	}
 
 	@Nested
@@ -113,14 +116,6 @@ class CriarUsuarioUseCaseTest {
 			verify(usuarioOutputPort, times(1)).salvar(any(Usuario.class));
 			verify(transactionManager, times(1)).execute(any(Runnable.class));
 		}
-	}
-
-	private void doInvocationTransactionHelperMethod() {
-		doAnswer(invocation -> {
-			Runnable action = invocation.getArgument(0);
-			action.run();
-			return null;
-		}).when(transactionManager).execute(any(Runnable.class));
 	}
 
 	@Nested
@@ -232,9 +227,6 @@ class CriarUsuarioUseCaseTest {
 			Exception exception = assertThrows(RegistradorUsuarioIndisponivelException.class,
 				() -> useCase.execute(command));
 			assertInstanceOf(RegistradorUsuarioIndisponivelException.class, exception);
-
-			verify(appLogger, times(1)).error(eq("Erro ao registrar usuário no BD."),
-				any(RuntimeException.class));
 			verify(transactionManager, times(1)).execute(any(Runnable.class));
 		}
 
@@ -251,9 +243,6 @@ class CriarUsuarioUseCaseTest {
 
 			assertThrows(RegistradorUsuarioIndisponivelException.class,
 				() -> useCase.execute(command));
-
-			verify(appLogger, times(1)).error("Erro ao registrar usuário no BD.",
-				excecaoSimulada);
 			verify(transactionManager, times(1)).execute(any(Runnable.class));
 		}
 	}

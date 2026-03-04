@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -19,7 +19,6 @@ import com.eliasmeyer.sp.application.exception.TransferenciaIllegalException;
 import com.eliasmeyer.sp.application.exception.TransferenciaIndisponivelException;
 import com.eliasmeyer.sp.application.exception.TransferenciaNaoAutorizadaException;
 import com.eliasmeyer.sp.application.ports.TransactionManager;
-import com.eliasmeyer.sp.application.shared.logging.AppLogger;
 import com.eliasmeyer.sp.domain.model.carteira.Dinheiro;
 import com.eliasmeyer.sp.domain.model.transferencia.eventos.TransferenciaCanceladaEvento;
 import com.eliasmeyer.sp.domain.model.usuario.DocumentoFactory;
@@ -34,13 +33,16 @@ import com.eliasmeyer.sp.domain.ports.in.transferencia.EfetuarTransferenciaComma
 import com.eliasmeyer.sp.domain.ports.out.transferencia.TransferenciaAutorizadorOutputPort;
 import com.eliasmeyer.sp.domain.ports.out.transferencia.TransferenciaOutputPort;
 import com.eliasmeyer.sp.domain.ports.out.usuario.UsuarioOutputPort;
+import com.eliasmeyer.sp.domain.shared.DomainEvent;
 import com.eliasmeyer.sp.domain.shared.DomainEventDispatcher;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 @DisplayName("Testes do EfetuarTransferenciaUseCase")
 class EfetuarTransferenciaUseCaseTest {
@@ -49,7 +51,6 @@ class EfetuarTransferenciaUseCaseTest {
 	private TransferenciaOutputPort transferenciaOutputPort;
 	private UsuarioOutputPort usuarioOutputPort;
 	private DomainEventDispatcher domainEventDispatcher;
-	private AppLogger appLogger;
 	private TransactionManager transactionManager;
 	private EfetuarTransferenciaUseCase useCase;
 	private Usuario pagador;
@@ -61,12 +62,10 @@ class EfetuarTransferenciaUseCaseTest {
 		transferenciaOutputPort = mock(TransferenciaOutputPort.class);
 		usuarioOutputPort = mock(UsuarioOutputPort.class);
 		domainEventDispatcher = mock(DomainEventDispatcher.class);
-		appLogger = mock(AppLogger.class);
 		transactionManager = mock(TransactionManager.class);
 		doInvocationTransactionHelperMethod();
 		useCase = new EfetuarTransferenciaUseCase(
 			autorizador,
-			appLogger,
 			transactionManager,
 			domainEventDispatcher,
 			usuarioOutputPort,
@@ -168,16 +167,29 @@ class EfetuarTransferenciaUseCaseTest {
 		void shouldSalvarEstadoCanceladoAndDispatchEventWhenAutorizadorRejeita() {
 			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(
 				pagador.getId(), recebedor.getId(), "100.00");
+
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any())).thenReturn(false);
+
 			assertThrows(TransferenciaNaoAutorizadaException.class,
 				() -> useCase.execute(efetuarTransferenciaCommand));
+
 			verify(transferenciaOutputPort, times(2)).salvar(any());
-			verify(domainEventDispatcher, times(1)).dispatch(
-				argThat(events -> events.stream()
-					.anyMatch(TransferenciaCanceladaEvento.class::isInstance)));
+
+			// Usar ArgumentCaptor para capturar a lista completa
+			ArgumentCaptor<List<DomainEvent>> eventsCaptor = ArgumentCaptor.forClass(List.class);
+			verify(domainEventDispatcher, times(1)).dispatch(eventsCaptor.capture());
+
+			List<DomainEvent> capturedEvents = eventsCaptor.getValue();
+
+			assertFalse(capturedEvents.isEmpty(),
+				"Event list should not be empty. Events: " + capturedEvents);
+			assertTrue(
+				capturedEvents.stream().anyMatch(TransferenciaCanceladaEvento.class::isInstance),
+				"Expected TransferenciaCanceladaEvento to be dispatched. Events: " + capturedEvents
+			);
 			verify(transactionManager, times(2)).execute(any(Runnable.class));
 		}
 
@@ -208,23 +220,30 @@ class EfetuarTransferenciaUseCaseTest {
 			assertThrows(TransferenciaIndisponivelException.class,
 				() -> useCase.execute(efetuarTransferenciaCommand));
 			verify(transferenciaOutputPort, times(2)).salvar(any());
-			verify(domainEventDispatcher, times(1)).dispatch(
-				argThat(events -> events.stream().anyMatch(
-					TransferenciaCanceladaEvento.class::isInstance)));
+			ArgumentCaptor<List<DomainEvent>> eventsCaptor = ArgumentCaptor.forClass(List.class);
+			verify(domainEventDispatcher, times(1)).dispatch(eventsCaptor.capture());
+			List<DomainEvent> capturedEvents = eventsCaptor.getValue();
+			assertTrue(
+				capturedEvents.stream().anyMatch(TransferenciaCanceladaEvento.class::isInstance),
+				"Expected TransferenciaCanceladaEvento to be dispatched"
+			);
 			verify(transactionManager, times(2)).execute(any(Runnable.class));
 		}
 
 		@Test
 		@DisplayName("Deve lancar TransferenciaIllegalException quando pagador e lojista")
 		void shouldThrowTransferenciaIllegalExceptionWhenPagadorIsLojista() {
-			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(
-				pagador.getId(), recebedor.getId(), "100.00");
 			Usuario lojistaPagador = criarLojista("11222333000181", "lojista@email.com");
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(
+				lojistaPagador.getId(), recebedor.getId(), "100.00");
+
 			lojistaPagador.receber(new Dinheiro("500.00"));
+
 			when(usuarioOutputPort.buscarPorId(lojistaPagador.getId()))
 				.thenReturn(Optional.of(lojistaPagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId()))
 				.thenReturn(Optional.of(recebedor));
+
 			assertInstanceOf(TransferenciaIllegalException.class,
 				assertThrows(TransferenciaIllegalException.class,
 					() -> useCase.execute(
@@ -297,7 +316,7 @@ class EfetuarTransferenciaUseCaseTest {
 			assertThrows(RuntimeException.class,
 				() -> useCase.execute(efetuarTransferenciaCommand));
 			verify(domainEventDispatcher, times(1)).dispatch(any());
-			verify(transactionManager, times(3)).execute(any(Runnable.class));
+			verify(transactionManager, times(2)).execute(any(Runnable.class));
 		}
 
 		@Test

@@ -5,7 +5,6 @@ import com.eliasmeyer.sp.application.exception.TransferenciaIllegalException;
 import com.eliasmeyer.sp.application.exception.TransferenciaIndisponivelException;
 import com.eliasmeyer.sp.application.exception.TransferenciaNaoAutorizadaException;
 import com.eliasmeyer.sp.application.ports.TransactionManager;
-import com.eliasmeyer.sp.application.shared.logging.AppLogger;
 import com.eliasmeyer.sp.domain.model.carteira.Dinheiro;
 import com.eliasmeyer.sp.domain.model.transferencia.Transferencia;
 import com.eliasmeyer.sp.domain.model.usuario.Usuario;
@@ -16,14 +15,13 @@ import com.eliasmeyer.sp.domain.ports.out.transferencia.TransferenciaAutorizador
 import com.eliasmeyer.sp.domain.ports.out.transferencia.TransferenciaOutputPort;
 import com.eliasmeyer.sp.domain.ports.out.usuario.UsuarioOutputPort;
 import com.eliasmeyer.sp.domain.shared.DomainEventDispatcher;
+import java.util.ArrayList;
 
 public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPort {
 
 	private final UsuarioOutputPort usuarioOutputPort;
 
 	private final DomainEventDispatcher domainEventDispatcher;
-
-	private final AppLogger appLogger;
 
 	private final Reservador reservador;
 
@@ -36,24 +34,25 @@ public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPor
 	private final Falhador falhador;
 
 	public EfetuarTransferenciaUseCase(
-		TransferenciaAutorizadorOutputPort transferenciaAutorizadorOutputPort, AppLogger appLogger,
+		TransferenciaAutorizadorOutputPort transferenciaAutorizadorOutputPort,
 		TransactionManager transactionManager, DomainEventDispatcher domainEventDispatcher,
 		UsuarioOutputPort usuarioOutputPort, TransferenciaOutputPort transferenciaOutputPort) {
-		this.appLogger = appLogger;
 		this.domainEventDispatcher = domainEventDispatcher;
 		this.usuarioOutputPort = usuarioOutputPort;
 
 		this.cancelador = new Cancelador(transactionManager, usuarioOutputPort,
 			transferenciaOutputPort);
-		this.autorizador = new Autorizador(transferenciaAutorizadorOutputPort, appLogger);
+
+		this.autorizador = new Autorizador(transferenciaAutorizadorOutputPort);
 
 		this.reservador = new Reservador(transferenciaOutputPort, usuarioOutputPort,
-			transactionManager, appLogger);
+			transactionManager);
+
 		this.efetivador = new Efetivador(transferenciaOutputPort, usuarioOutputPort,
 			transactionManager);
 
 		this.falhador = new Falhador(transactionManager, usuarioOutputPort,
-			transferenciaOutputPort, appLogger);
+			transferenciaOutputPort);
 	}
 
 	@Override
@@ -83,30 +82,26 @@ public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPor
 
 			efetivador.executar(transferencia);
 		} catch (TransferenciaIllegalException tie) {
-			appLogger.error("Transferência inválida", tie);
 			throw tie;
 
 		} catch (TransferenciaNaoAutorizadaException tnae) {
-			appLogger.error("Transferência não autorizada", tnae);
 			cancelador.execute(transferencia);
 			throw tnae;
 
 		} catch (AutorizadorIndisponivelException tie) {
 			// Pressupõe que qualquer erro do autorizador e como não autorizado!
 			cancelador.execute(transferencia);
-			appLogger.error("Transferência indisponível", tie);
 			throw new TransferenciaIndisponivelException("Serviço Autorizador indisponível", tie);
 
 		} catch (Exception e) {
 			// Erros de infraestrutura após a reserva (BD na efetivação, etc.):
 			// Falhador reverte a carteira em memória e tenta salvar o estado falhado (best-effort).
-			appLogger.error("Erro inesperado ao executar transferência", e);
 			falhador.execute(transferencia);
 			throw e;
 
 		} finally {
 			// Despacha apenas os eventos acumulados após a reserva (cancelamento, falha ou efetivação).
-			domainEventDispatcher.dispatch(transferencia.domainEvents());
+			domainEventDispatcher.dispatch(new ArrayList<>(transferencia.domainEvents()));
 			transferencia.clearEvents();
 		}
 	}

@@ -2,7 +2,7 @@ package com.eliasmeyer.sp.application.usecase.transferencia;
 
 import com.eliasmeyer.sp.application.exception.TransferenciaIllegalException;
 import com.eliasmeyer.sp.application.ports.TransactionManager;
-import com.eliasmeyer.sp.application.shared.logging.AppLogger;
+import com.eliasmeyer.sp.application.shared.ApplicationException;
 import com.eliasmeyer.sp.domain.model.transferencia.Transferencia;
 import com.eliasmeyer.sp.domain.model.usuario.Usuario;
 import com.eliasmeyer.sp.domain.ports.out.transferencia.TransferenciaOutputPort;
@@ -14,15 +14,12 @@ class Reservador {
 	private final TransferenciaOutputPort transferenciaOutputPort;
 	private final UsuarioOutputPort usuarioOutputPort;
 	private final TransactionManager transactionManager;
-	private final AppLogger appLogger;
 
 	Reservador(TransferenciaOutputPort transferenciaOutputPort,
-		UsuarioOutputPort usuarioOutputPort, TransactionManager transactionManager,
-		AppLogger appLogger) {
+		UsuarioOutputPort usuarioOutputPort, TransactionManager transactionManager) {
 		this.transferenciaOutputPort = transferenciaOutputPort;
 		this.usuarioOutputPort = usuarioOutputPort;
 		this.transactionManager = transactionManager;
-		this.appLogger = appLogger;
 	}
 
 	void executar(Transferencia transferencia) {
@@ -39,8 +36,9 @@ class Reservador {
 			throw new TransferenciaIllegalException(
 				"Transferência inválida por restrição da regra de negócio.", e);
 		} catch (Exception e) {
-			appLogger.error("Erro ao reservar quantia financeira.", e);
-			throw e;
+			throw new ApplicationException(
+				String.format("Erro técnico ao reservar quantia financeira para transferência %s",
+					transferencia.getId()), e);
 		}
 	}
 }
