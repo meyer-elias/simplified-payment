@@ -25,7 +25,7 @@ class Autorizador {
 			return transferenciaAutorizadorOutputPort.isAutorizado(idPagador);
 		} catch (Exception e) {
 			appLogger.error("Erro no Serviço do autorizador! Pagador: {}, Transferência: {}",
-				idPagador, transferencia.getId(), e);
+				e, idPagador, transferencia.getId());
 			throw new AutorizadorIndisponivelException("Erro no Serviço do autorizador", e);
 		}
 	}
