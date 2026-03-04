@@ -1,0 +1,20 @@
+package com.eliasmeyer.sp.core.domain.model.usuario;
+
+import java.util.Objects;
+
+/**
+ * Value Object que representa o nome de um usuário. Garante que o nome não seja nulo e não esteja
+ * vazio.
+ */
+public record Nome(String nome) {
+
+	public Nome {
+		Objects.requireNonNull(nome, "Nome não pode ser nulo");
+
+		if (nome.trim().length() < 3) {
+			throw new IllegalArgumentException("Nome deve ter pelo menos 3 caracteres");
+		}
+	}
+}
+
+
