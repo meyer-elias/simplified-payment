@@ -6,8 +6,6 @@ import com.eliasmeyer.sp.application.exception.TransferenciaIndisponivelExceptio
 import com.eliasmeyer.sp.application.exception.TransferenciaNaoAutorizadaException;
 import com.eliasmeyer.sp.application.ports.TransactionManager;
 import com.eliasmeyer.sp.application.shared.logging.AppLogger;
-import com.eliasmeyer.sp.domain.exception.LojistaNaoPodeTransferirDinheiroException;
-import com.eliasmeyer.sp.domain.exception.SaldoInsuficienteException;
 import com.eliasmeyer.sp.domain.model.carteira.Dinheiro;
 import com.eliasmeyer.sp.domain.model.transferencia.Transferencia;
 import com.eliasmeyer.sp.domain.model.usuario.Usuario;
@@ -21,29 +19,41 @@ import com.eliasmeyer.sp.domain.shared.DomainEventDispatcher;
 
 public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPort {
 
-	private final TransferenciaAutorizadorOutputPort transferenciaAutorizadorOutputPort;
-
-	private final TransferenciaOutputPort transferenciaOutputPort;
-
 	private final UsuarioOutputPort usuarioOutputPort;
 
 	private final DomainEventDispatcher domainEventDispatcher;
 
 	private final AppLogger appLogger;
 
-	private final TransactionManager transactionManager;
+	private final Reservador reservador;
+
+	private final Autorizador autorizador;
+
+	private final Cancelador cancelador;
+
+	private final Efetivador efetivador;
+
+	private final Falhador falhador;
 
 	public EfetuarTransferenciaUseCase(
-		TransferenciaAutorizadorOutputPort transferenciaAutorizadorOutputPort,
-		TransferenciaOutputPort transferenciaOutputPort, UsuarioOutputPort usuarioOutputPort,
-		DomainEventDispatcher domainEventDispatcher, AppLogger appLogger,
-		TransactionManager transactionManager) {
-		this.transferenciaAutorizadorOutputPort = transferenciaAutorizadorOutputPort;
-		this.transferenciaOutputPort = transferenciaOutputPort;
-		this.usuarioOutputPort = usuarioOutputPort;
-		this.domainEventDispatcher = domainEventDispatcher;
+		TransferenciaAutorizadorOutputPort transferenciaAutorizadorOutputPort, AppLogger appLogger,
+		TransactionManager transactionManager, DomainEventDispatcher domainEventDispatcher,
+		UsuarioOutputPort usuarioOutputPort, TransferenciaOutputPort transferenciaOutputPort) {
 		this.appLogger = appLogger;
-		this.transactionManager = transactionManager;
+		this.domainEventDispatcher = domainEventDispatcher;
+		this.usuarioOutputPort = usuarioOutputPort;
+
+		this.cancelador = new Cancelador(transactionManager, usuarioOutputPort,
+			transferenciaOutputPort);
+		this.autorizador = new Autorizador(transferenciaAutorizadorOutputPort, appLogger);
+
+		this.reservador = new Reservador(transferenciaOutputPort, usuarioOutputPort,
+			transactionManager, appLogger);
+		this.efetivador = new Efetivador(transferenciaOutputPort, usuarioOutputPort,
+			transactionManager);
+
+		this.falhador = new Falhador(transactionManager, usuarioOutputPort,
+			transferenciaOutputPort, appLogger);
 	}
 
 	@Override
@@ -52,102 +62,58 @@ public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPor
 		UsuarioId idRecebedor = new UsuarioId(command.idRecebedor());
 		Dinheiro quantia = new Dinheiro(command.quantia());
 
-		Usuario uPagador = usuarioOutputPort.buscarPorId(idPagador).orElseThrow(
-			() -> new IllegalArgumentException(
-				String.format("Usuário não encontrado com o id [%s]", idPagador)));
-
-		Usuario uRecebedor = usuarioOutputPort.buscarPorId(idRecebedor).orElseThrow(
-			() -> new IllegalArgumentException(
-				String.format("Usuário não encontrado com o id [%s]", idRecebedor)));
+		Usuario uPagador = buscarUsuarioPorId(idPagador);
+		Usuario uRecebedor = buscarUsuarioPorId(idRecebedor);
 
 		var transferencia = new Transferencia(uPagador, uRecebedor, quantia);
 
-		// FASE 1: Reserva dentro da transação — bloqueia saldo no BD antes de qualquer chamada externa
-		transactionManager.execute(() -> {
-			try {
-				transferencia.reservar();
-				transferenciaOutputPort.salvar(transferencia);
-				usuarioOutputPort.salvar(uPagador);
-			} catch (LojistaNaoPodeTransferirDinheiroException | SaldoInsuficienteException e) {
-				throw new TransferenciaIllegalException(
-					"Transferência inválida por regra de negócio.", e);
-			} catch (TransferenciaIllegalException e) {
-				throw e;
-			} catch (Exception e) {
-				if (transferencia.isReservada()) {
-					transferencia.cancelar();
-					salvarBestEffort(transferencia);
-					usuarioOutputPort.salvar(uPagador);
-				}
-				throw new TransferenciaIndisponivelException("Falha técnica ao reservar.", e);
-			}
-			return null;
-		});
+		// FASE 1: reservar — se falhar aqui (ex: BD fora, saldo insuficiente),
+		// o TransactionManager faz rollback automaticamente e a exceção sobe sem passar pelo Falhador.
+		reservador.executar(transferencia);
+		transferencia.clearEvents();
 
-		// FASE 2: Autorizador FORA da transação — chamada HTTP não segura conexão de BD
-		boolean autorizado;
 		try {
-			autorizado = checkAutorizador(idPagador);
-		} catch (AutorizadorIndisponivelException e) {
-			transferencia.cancelar();
-			salvarBestEffort(transferencia);
-			throw new TransferenciaIndisponivelException("Serviço do autorizador indisponível", e);
-		}
+			boolean autorizado = autorizador.isAutorizado(transferencia);
 
-		// FASE 3: Captura — realiza ou cancela dentro de nova transação
-		transactionManager.execute(() -> {
-			try {
-				if (autorizado) {
-					transferencia.realizar();
-				} else {
-					transferencia.cancelar();
-				}
-				transferenciaOutputPort.salvar(transferencia);
-				usuarioOutputPort.salvar(uPagador);
-				usuarioOutputPort.salvar(uRecebedor);
-			} catch (Exception e) {
-				if (transferencia.isReservada()) {
-					transferencia.falhar();
-				}
-				salvarBestEffort(transferencia);
-				throw new TransferenciaIndisponivelException("Falha técnica inesperada.", e);
-			} finally {
-				domainEventDispatcher.dispatch(transferencia.domainEvents());
-				transferencia.clearEvents();
-			}
-
-			if (transferencia.isCancelada()) {
+			if (!autorizado) {
 				throw new TransferenciaNaoAutorizadaException(
-					String.format("Usuário [%s] não autorizado para transferir dinheiro.",
+					String.format("Usuário [%s] não autorizado para transferência financeira.",
 						idPagador));
 			}
-			return null;
-		});
-	}
 
-	/**
-	 * Tenta persistir o estado da transferência sem propagar exceções.
-	 * <p>
-	 * Usado em blocos de tratamento de erro para registrar o estado final (FALHADA ou CANCELADA)
-	 * sem mascarar a exceção original que desencadeou o erro.
-	 * </p>
-	 */
-	private void salvarBestEffort(Transferencia transferencia) {
-		try {
-			transactionManager.execute(() -> {
-				transferenciaOutputPort.salvar(transferencia);
-				return null;
-			});
-		} catch (Exception saveEx) {
-			appLogger.error("Error ao gravar no BD", saveEx);
+			efetivador.executar(transferencia);
+		} catch (TransferenciaIllegalException tie) {
+			appLogger.error("Transferência inválida", tie);
+			throw tie;
+
+		} catch (TransferenciaNaoAutorizadaException tnae) {
+			appLogger.error("Transferência não autorizada", tnae);
+			cancelador.execute(transferencia);
+			throw tnae;
+
+		} catch (AutorizadorIndisponivelException tie) {
+			// Pressupõe que qualquer erro do autorizador e como não autorizado!
+			cancelador.execute(transferencia);
+			appLogger.error("Transferência indisponível", tie);
+			throw new TransferenciaIndisponivelException("Serviço Autorizador indisponível", tie);
+
+		} catch (Exception e) {
+			// Erros de infraestrutura após a reserva (BD na efetivação, etc.):
+			// Falhador reverte a carteira em memória e tenta salvar o estado falhado (best-effort).
+			appLogger.error("Erro inesperado ao executar transferência", e);
+			falhador.execute(transferencia);
+			throw e;
+
+		} finally {
+			// Despacha apenas os eventos acumulados após a reserva (cancelamento, falha ou efetivação).
+			domainEventDispatcher.dispatch(transferencia.domainEvents());
+			transferencia.clearEvents();
 		}
 	}
 
-	private boolean checkAutorizador(UsuarioId idPagador) {
-		try {
-			return transferenciaAutorizadorOutputPort.isAutorizado(idPagador);
-		} catch (Exception ex) {
-			throw new AutorizadorIndisponivelException("Serviço do autorizador indisponível", ex);
-		}
+	private Usuario buscarUsuarioPorId(UsuarioId id) {
+		return usuarioOutputPort.buscarPorId(id).orElseThrow(
+			() -> new IllegalArgumentException(
+				String.format("Usuário não encontrado com o id [%s]", id)));
 	}
 }

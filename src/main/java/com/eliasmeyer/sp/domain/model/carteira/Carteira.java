@@ -34,6 +34,16 @@ public class Carteira {
 		saldoReservado.subtrair(quantia);
 	}
 
+	/**
+	 * Cancela uma reserva, devolvendo a quantia ao saldo disponível.
+	 * <p>
+	 * Operação idempotente usada tanto para cancelamentos de negócio (autorizador recusa) quanto
+	 * para reversões por falha técnica (ex: BD indisponível após reserva). A operação acontece
+	 * <strong>em memória</strong>, garantindo que o saldo não fique preso mesmo que a persistência
+	 * falhe.
+	 *
+	 * @param quantia valor a ser devolvido ao saldo disponível
+	 */
 	public void cancelarReserva(Dinheiro quantia) {
 		saldoDisponivel.somar(quantia);
 		saldoReservado.subtrair(quantia);
@@ -45,5 +55,9 @@ public class Carteira {
 
 	public Dinheiro getSaldoDisponivel() {
 		return saldoDisponivel;
+	}
+
+	public Dinheiro getSaldoReservado() {
+		return saldoReservado;
 	}
 }

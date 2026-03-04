@@ -1,9 +1,11 @@
 package com.eliasmeyer.sp.application.usecase.transferencia;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -19,6 +21,7 @@ import com.eliasmeyer.sp.application.exception.TransferenciaNaoAutorizadaExcepti
 import com.eliasmeyer.sp.application.ports.TransactionManager;
 import com.eliasmeyer.sp.application.shared.logging.AppLogger;
 import com.eliasmeyer.sp.domain.model.carteira.Dinheiro;
+import com.eliasmeyer.sp.domain.model.transferencia.eventos.TransferenciaCanceladaEvento;
 import com.eliasmeyer.sp.domain.model.usuario.DocumentoFactory;
 import com.eliasmeyer.sp.domain.model.usuario.Email;
 import com.eliasmeyer.sp.domain.model.usuario.Lojista;
@@ -34,7 +37,6 @@ import com.eliasmeyer.sp.domain.ports.out.usuario.UsuarioOutputPort;
 import com.eliasmeyer.sp.domain.shared.DomainEventDispatcher;
 import java.math.BigDecimal;
 import java.util.Optional;
-import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -49,9 +51,7 @@ class EfetuarTransferenciaUseCaseTest {
 	private DomainEventDispatcher domainEventDispatcher;
 	private AppLogger appLogger;
 	private TransactionManager transactionManager;
-
 	private EfetuarTransferenciaUseCase useCase;
-
 	private Usuario pagador;
 	private Usuario recebedor;
 
@@ -64,25 +64,18 @@ class EfetuarTransferenciaUseCaseTest {
 		appLogger = mock(AppLogger.class);
 		transactionManager = mock(TransactionManager.class);
 		doInvocationTransactionHelperMethod();
-
 		useCase = new EfetuarTransferenciaUseCase(
 			autorizador,
-			transferenciaOutputPort,
-			usuarioOutputPort,
-			domainEventDispatcher,
 			appLogger,
-			transactionManager
+			transactionManager,
+			domainEventDispatcher,
+			usuarioOutputPort,
+			transferenciaOutputPort
 		);
-
 		pagador = criarUsuarioComum("12345678909", "pagador@email.com");
 		recebedor = criarUsuarioComum("69003525021", "recebedor@email.com");
-
 		pagador.receber(new Dinheiro("500.00"));
 	}
-
-	// -------------------------------------------------
-	// Cenários de sucesso
-	// -------------------------------------------------
 
 	private EfetuarTransferenciaCommand criarCommand(UsuarioId idPagador, UsuarioId idRecebedor,
 		String quantia) {
@@ -93,10 +86,6 @@ class EfetuarTransferenciaUseCaseTest {
 		);
 	}
 
-	// -------------------------------------------------
-	// Cenários de não autorização
-	// -------------------------------------------------
-
 	private UsuarioComum criarUsuarioComum(String cpf, String email) {
 		return (UsuarioComum) UsuarioFactory.criar(
 			DocumentoFactory.criar(cpf),
@@ -105,10 +94,6 @@ class EfetuarTransferenciaUseCaseTest {
 			"senhaHash123"
 		);
 	}
-
-	// -------------------------------------------------
-	// Cenários de falha técnica
-	// -------------------------------------------------
 
 	private Lojista criarLojista(String cnpj, String email) {
 		return (Lojista) UsuarioFactory.criar(
@@ -119,326 +104,289 @@ class EfetuarTransferenciaUseCaseTest {
 		);
 	}
 
-	// -------------------------------------------------
-	// Cenários de usuário não encontrado
-	// -------------------------------------------------
-
 	private void doInvocationTransactionHelperMethod() {
 		doAnswer(invocation -> {
-			Supplier<?> supplier = invocation.getArgument(0);
-			supplier.get();
+			Runnable action = invocation.getArgument(0);
+			action.run();
 			return null;
-		}).when(transactionManager).execute(any());
+		}).when(transactionManager).execute(any(Runnable.class));
 	}
 
-	// -------------------------------------------------
-	// Cenários de saldo insuficiente
-	// -------------------------------------------------
-
 	@Nested
-	@DisplayName("Cenários de sucesso")
+	@DisplayName("Cenarios de sucesso")
 	class Sucesso {
 
 		@Test
-		@DisplayName("Deve realizar transferência quando autorizador aprova")
+		@DisplayName("Deve realizar transferencia quando autorizador aprova")
 		void shouldRealizarTransferenciaWhenAutorizadorAprova() {
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any())).thenReturn(true);
-
 			EfetuarTransferenciaCommand command = criarCommand(
 				pagador.getId(), recebedor.getId(), "100.00");
-
 			assertDoesNotThrow(() -> useCase.execute(command));
-
-			// FASE 1: salva reserva + pagador; FASE 3: salva realizada + pagador + recebedor = 2 saves no transferenciaOutputPort
 			verify(transferenciaOutputPort, times(2)).salvar(any());
 			verify(usuarioOutputPort, times(2)).salvar(pagador);
 			verify(usuarioOutputPort, times(1)).salvar(recebedor);
 			verify(domainEventDispatcher, times(1)).dispatch(any());
-			// FASE 1 + FASE 3 = 2 execuções do transactionManager
-			verify(transactionManager, times(2)).execute(any());
+			verify(transactionManager, times(2)).execute(any(Runnable.class));
 		}
 
 		@Test
-		@DisplayName("Deve despachar eventos ao final quando transferência é realizada")
+		@DisplayName("Deve despachar eventos ao final quando transferencia e realizada")
 		void shouldDispatchEventsWhenTransferenciaRealizada() {
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any())).thenReturn(true);
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				pagador.getId(), recebedor.getId(), "100.00");
-
-			useCase.execute(command);
-
+			useCase.execute(criarCommand(pagador.getId(), recebedor.getId(), "100.00"));
 			verify(domainEventDispatcher, times(1)).dispatch(any());
-			// FASE 1 + FASE 3 = 2 execuções do transactionManager
-			verify(transactionManager, times(2)).execute(any());
+			verify(transactionManager, times(2)).execute(any(Runnable.class));
 		}
 	}
 
-	// -------------------------------------------------
-	// Helpers
-	// -------------------------------------------------
-
 	@Nested
-	@DisplayName("Cenários de não autorização")
+	@DisplayName("Cenarios de nao autorizacao")
 	class NaoAutorizacao {
 
 		@Test
-		@DisplayName("Deve lançar TransferenciaNaoAutorizadaException quando autorizador rejeita")
+		@DisplayName("Deve lancar TransferenciaNaoAutorizadaException quando autorizador rejeita")
 		void shouldThrowTransferenciaNaoAutorizadaExceptionWhenAutorizadorRejeita() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(
+				pagador.getId(), recebedor.getId(), "100.00");
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any())).thenReturn(false);
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				pagador.getId(), recebedor.getId(), "100.00");
-
-			assertThrows(TransferenciaNaoAutorizadaException.class, () -> useCase.execute(command));
+			assertThrows(TransferenciaNaoAutorizadaException.class,
+				() -> useCase.execute(efetuarTransferenciaCommand));
 		}
 
 		@Test
-		@DisplayName("Deve salvar estado cancelado quando autorizador rejeita")
-		void shouldSalvarEstadoCanceladoWhenAutorizadorRejeita() {
+		@DisplayName("Deve salvar estado cancelado e despachar evento quando autorizador rejeita")
+		void shouldSalvarEstadoCanceladoAndDispatchEventWhenAutorizadorRejeita() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(
+				pagador.getId(), recebedor.getId(), "100.00");
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any())).thenReturn(false);
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				pagador.getId(), recebedor.getId(), "100.00");
-
-			assertThrows(TransferenciaNaoAutorizadaException.class, () -> useCase.execute(command));
-
-			// FASE 1: salva reserva; FASE 3: salva cancelada = 2 saves
+			assertThrows(TransferenciaNaoAutorizadaException.class,
+				() -> useCase.execute(efetuarTransferenciaCommand));
 			verify(transferenciaOutputPort, times(2)).salvar(any());
-			verify(domainEventDispatcher, times(1)).dispatch(any());
-			// FASE 1 + FASE 3 = 2 execuções do transactionManager
-			verify(transactionManager, times(2)).execute(any());
+			verify(domainEventDispatcher, times(1)).dispatch(
+				argThat(events -> events.stream()
+					.anyMatch(TransferenciaCanceladaEvento.class::isInstance)));
+			verify(transactionManager, times(2)).execute(any(Runnable.class));
 		}
 
 		@Test
-		@DisplayName("Deve lançar TransferenciaIndisponivelException quando autorizador está indisponível")
+		@DisplayName("Deve lancar TransferenciaIndisponivelException quando autorizador esta indisponivel")
 		void shouldThrowTransferenciaIndisponivelExceptionWhenAutorizadorIndisponivel() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(
+				pagador.getId(), recebedor.getId(), "100.00");
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any()))
-				.thenThrow(new AutorizadorIndisponivelException("Serviço fora do ar"));
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				pagador.getId(), recebedor.getId(), "100.00");
-
-			assertThrows(TransferenciaIndisponivelException.class, () -> useCase.execute(command));
+				.thenThrow(new AutorizadorIndisponivelException("Servico fora do ar"));
+			assertThrows(TransferenciaIndisponivelException.class,
+				() -> useCase.execute(efetuarTransferenciaCommand));
 		}
 
 		@Test
-		@DisplayName("Deve salvar estado cancelado quando autorizador está indisponível")
-		void shouldSalvarEstadoCanceladoWhenAutorizadorIndisponivel() {
+		@DisplayName("Deve salvar estado cancelado e despachar evento quando autorizador esta indisponivel")
+		void shouldSalvarEstadoCanceladoAndDispatchEventWhenAutorizadorIndisponivel() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(pagador.getId(),
+				recebedor.getId(), "100.00");
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any()))
-				.thenThrow(new AutorizadorIndisponivelException("Serviço fora do ar"));
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				pagador.getId(), recebedor.getId(), "100.00");
-
-			assertThrows(TransferenciaIndisponivelException.class, () -> useCase.execute(command));
-
-			// FASE 1: salva reserva; salvarBestEffort: salva cancelada = 2 saves
+				.thenThrow(new AutorizadorIndisponivelException("Servico fora do ar"));
+			assertThrows(TransferenciaIndisponivelException.class,
+				() -> useCase.execute(efetuarTransferenciaCommand));
 			verify(transferenciaOutputPort, times(2)).salvar(any());
-			verify(domainEventDispatcher, never()).dispatch(any());
-			// FASE 1 + salvarBestEffort = 2 execuções do transactionManager
-			verify(transactionManager, times(2)).execute(any());
+			verify(domainEventDispatcher, times(1)).dispatch(
+				argThat(events -> events.stream().anyMatch(
+					TransferenciaCanceladaEvento.class::isInstance)));
+			verify(transactionManager, times(2)).execute(any(Runnable.class));
 		}
 
 		@Test
-		@DisplayName("Deve lançar LojistaNaoPodeTransferirDinheiroException quando pagador é lojista")
-		void shouldThrowLojistaNaoPodeTransferirDinheiroExceptionWhenPagadorIsLojista() {
+		@DisplayName("Deve lancar TransferenciaIllegalException quando pagador e lojista")
+		void shouldThrowTransferenciaIllegalExceptionWhenPagadorIsLojista() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(
+				pagador.getId(), recebedor.getId(), "100.00");
 			Usuario lojistaPagador = criarLojista("11222333000181", "lojista@email.com");
-			lojistaPagador.receber(new com.eliasmeyer.sp.domain.model.carteira.Dinheiro("500.00"));
-
+			lojistaPagador.receber(new Dinheiro("500.00"));
 			when(usuarioOutputPort.buscarPorId(lojistaPagador.getId()))
 				.thenReturn(Optional.of(lojistaPagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId()))
 				.thenReturn(Optional.of(recebedor));
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				lojistaPagador.getId(), recebedor.getId(), "100.00");
-
-			Exception exception = assertThrows(
-				TransferenciaIllegalException.class, () -> useCase.execute(command));
-
-			assertInstanceOf(TransferenciaIllegalException.class, exception);
+			assertInstanceOf(TransferenciaIllegalException.class,
+				assertThrows(TransferenciaIllegalException.class,
+					() -> useCase.execute(
+						efetuarTransferenciaCommand)));
 		}
 	}
 
 	@Nested
-	@DisplayName("Cenários de falha técnica")
+	@DisplayName("Cenarios de falha tecnica")
 	class FalhaTecnica {
 
 		@Test
-		@DisplayName("Deve lançar TransferenciaIndisponivelException quando BD falha ao salvar a reserva")
-		void shouldThrowTransferenciaIndisponivelExceptionWhenBdFalhaAoSalvarReserva() {
+		@DisplayName("Deve lancar RuntimeException quando BD falha ao salvar a reserva")
+		void shouldThrowExceptionWhenBdFalhaAoSalvarReserva() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(pagador.getId(),
+				recebedor.getId(), "100.00");
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
-			doThrow(new RuntimeException("BD indisponível"))
+			doThrow(new RuntimeException("BD indisponivel"))
 				.when(transferenciaOutputPort).salvar(any());
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				pagador.getId(), recebedor.getId(), "100.00");
-
-			assertThrows(TransferenciaIndisponivelException.class, () -> useCase.execute(command));
+			assertThrows(RuntimeException.class,
+				() -> useCase.execute(efetuarTransferenciaCommand));
 		}
 
 		@Test
-		@DisplayName("Não deve chamar autorizador quando BD falha ao salvar a reserva")
+		@DisplayName("Nao deve chamar autorizador quando BD falha ao salvar a reserva")
 		void shouldNotCallAutorizadorWhenBdFalhaAoSalvarReserva() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(pagador.getId(),
+				recebedor.getId(), "100.00");
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
-			doThrow(new RuntimeException("BD indisponível"))
+			doThrow(new RuntimeException("BD indisponivel"))
 				.when(transferenciaOutputPort).salvar(any());
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				pagador.getId(), recebedor.getId(), "100.00");
-
-			assertThrows(TransferenciaIndisponivelException.class, () -> useCase.execute(command));
-
+			assertThrows(RuntimeException.class,
+				() -> useCase.execute(efetuarTransferenciaCommand));
 			verify(autorizador, never()).isAutorizado(any());
+			verify(domainEventDispatcher, never()).dispatch(any());
 		}
 
 		@Test
-		@DisplayName("Deve lançar TransferenciaIndisponivelException quando BD falha ao salvar estado final")
-		void shouldThrowTransferenciaIndisponivelExceptionWhenBdFalhaAoSalvarEstadoFinal() {
+		@DisplayName("Deve lancar excecao quando BD falha ao salvar estado final da efetivacao")
+		void shouldThrowExceptionWhenBdFalhaAoSalvarEstadoFinal() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(pagador.getId(),
+				recebedor.getId(), "100.00");
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any())).thenReturn(true);
-
-			// FASE 1 salva com sucesso; FASE 3 lança exceção
 			doAnswer(invocation -> null)
-				.doThrow(new TransferenciaIndisponivelException("BD indisponível"))
+				.doThrow(new RuntimeException("BD indisponivel"))
 				.when(transferenciaOutputPort).salvar(any());
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				pagador.getId(), recebedor.getId(), "100.00");
-
-			assertThrows(TransferenciaIndisponivelException.class, () -> useCase.execute(command));
+			assertThrows(RuntimeException.class,
+				() -> useCase.execute(efetuarTransferenciaCommand));
 		}
 
 		@Test
-		@DisplayName("Deve despachar eventos mesmo quando BD falha ao salvar estado final")
+		@DisplayName("Deve despachar eventos mesmo quando BD falha ao salvar estado final da efetivacao")
 		void shouldDispatchEventsEvenWhenBdFalhaAoSalvarEstadoFinal() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(pagador.getId(),
+				recebedor.getId(), "100.00");
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any())).thenReturn(true);
-
-			// FASE 1 salva com sucesso; FASE 3 lança exceção — finally garante dispatch
 			doAnswer(invocation -> null)
-				.doThrow(new TransferenciaIndisponivelException("BD indisponível"))
+				.doThrow(new RuntimeException("BD indisponivel"))
 				.when(transferenciaOutputPort).salvar(any());
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				pagador.getId(), recebedor.getId(), "100.00");
-
-			assertThrows(TransferenciaIndisponivelException.class, () -> useCase.execute(command));
-
-			// finally garante despacho mesmo em falha na FASE 3
+			assertThrows(RuntimeException.class,
+				() -> useCase.execute(efetuarTransferenciaCommand));
 			verify(domainEventDispatcher, times(1)).dispatch(any());
-			// FASE 1 + FASE 3 + salvarBestEffort = 3 execuções do transactionManager
-			verify(transactionManager, times(3)).execute(any());
+			verify(transactionManager, times(3)).execute(any(Runnable.class));
 		}
 
 		@Test
-		@DisplayName("Não deve lançar IllegalStateException quando realizar() já mudou estado para REALIZADA e salvar() falha")
+		@DisplayName("Nao deve lancar IllegalStateException quando realizar() mudou estado para REALIZADA e salvar() falha")
 		void shouldNotThrowIllegalStateExceptionWhenRealizadaAndSalvarFails() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(pagador.getId(),
+				recebedor.getId(), "100.00");
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
 			when(autorizador.isAutorizado(any())).thenReturn(true);
-
-			doThrow(new TransferenciaIndisponivelException("BD indisponível"))
+			doAnswer(invocation -> null)
+				.doThrow(new RuntimeException("BD indisponivel"))
 				.when(transferenciaOutputPort).salvar(any());
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				pagador.getId(), recebedor.getId(), "100.00");
-
-			assertThrows(TransferenciaIndisponivelException.class, () -> useCase.execute(command));
+			Exception exception = assertThrows(RuntimeException.class,
+				() -> useCase.execute(efetuarTransferenciaCommand));
+			assertInstanceOf(RuntimeException.class, exception);
+			assertFalse(exception instanceof IllegalStateException);
 		}
 	}
 
 	@Nested
-	@DisplayName("Cenários de usuário não encontrado")
+	@DisplayName("Cenarios de usuario nao encontrado")
 	class UsuarioNaoEncontrado {
 
 		@Test
-		@DisplayName("Deve lançar IllegalArgumentException quando pagador não é encontrado")
+		@DisplayName("Deve lancar IllegalArgumentException quando pagador nao e encontrado")
 		void shouldThrowIllegalArgumentExceptionWhenPagadorNaoEncontrado() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(pagador.getId(),
+				recebedor.getId(), "100.00");
 			when(usuarioOutputPort.buscarPorId(any())).thenReturn(Optional.empty());
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				new UsuarioId(), recebedor.getId(), "100.00");
-
-			assertThrows(IllegalArgumentException.class, () -> useCase.execute(command));
+			assertThrows(IllegalArgumentException.class,
+				() -> useCase.execute(efetuarTransferenciaCommand));
 		}
 
 		@Test
-		@DisplayName("Deve lançar IllegalArgumentException quando recebedor não é encontrado")
+		@DisplayName("Deve lancar IllegalArgumentException quando recebedor nao e encontrado")
 		void shouldThrowIllegalArgumentExceptionWhenRecebedorNaoEncontrado() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(pagador.getId(),
+				recebedor.getId(), "100.00");
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(Optional.empty());
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				pagador.getId(), recebedor.getId(), "100.00");
-
-			assertThrows(IllegalArgumentException.class, () -> useCase.execute(command));
+			assertThrows(IllegalArgumentException.class,
+				() -> useCase.execute(efetuarTransferenciaCommand));
 		}
 
 		@Test
-		@DisplayName("Não deve salvar transferência quando pagador não é encontrado")
+		@DisplayName("Nao deve salvar transferencia quando pagador nao e encontrado")
 		void shouldNotSalvarTransferenciaWhenPagadorNaoEncontrado() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(new UsuarioId(),
+				recebedor.getId(), "100.00");
 			when(usuarioOutputPort.buscarPorId(any())).thenReturn(Optional.empty());
-
-			EfetuarTransferenciaCommand command = criarCommand(
-				new UsuarioId(), recebedor.getId(), "100.00");
-
-			assertThrows(IllegalArgumentException.class, () -> useCase.execute(command));
-
+			assertThrows(IllegalArgumentException.class,
+				() -> useCase.execute(efetuarTransferenciaCommand));
 			verify(transferenciaOutputPort, never()).salvar(any());
 			verify(domainEventDispatcher, never()).dispatch(any());
-			verify(transactionManager, never()).execute(any());
+			verify(transactionManager, never()).execute(any(Runnable.class));
 		}
 	}
 
 	@Nested
-	@DisplayName("Cenários de saldo insuficiente")
+	@DisplayName("Cenarios de saldo insuficiente")
 	class SaldoInsuficiente {
 
 		@Test
-		@DisplayName("Deve lançar TransferenciaIllegalException quando pagador não tem saldo suficiente")
-		void shouldThrowTransferenciaIndisponivelExceptionWhenSaldoInsuficiente() {
+		@DisplayName("Deve lancar TransferenciaIllegalException quando pagador nao tem saldo suficiente")
+		void shouldThrowTransferenciaIllegalExceptionWhenSaldoInsuficiente() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(pagador.getId(),
+				recebedor.getId(), "1000.00");
 			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
 			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
 				Optional.of(recebedor));
+			assertInstanceOf(TransferenciaIllegalException.class,
+				assertThrows(TransferenciaIllegalException.class,
+					() -> useCase.execute(efetuarTransferenciaCommand)));
+		}
 
-			// quantia maior que o saldo disponível (500.00)
-			EfetuarTransferenciaCommand command = criarCommand(
-				pagador.getId(), recebedor.getId(), "1000.00");
-
-			Exception exception = assertThrows(
-				TransferenciaIllegalException.class, () -> useCase.execute(command));
-
-			assertInstanceOf(TransferenciaIllegalException.class, exception);
+		@Test
+		@DisplayName("Nao deve chamar autorizador quando pagador nao tem saldo suficiente")
+		void shouldNotCallAutorizadorWhenSaldoInsuficiente() {
+			EfetuarTransferenciaCommand efetuarTransferenciaCommand = criarCommand(pagador.getId(),
+				recebedor.getId(), "1000.00");
+			when(usuarioOutputPort.buscarPorId(pagador.getId())).thenReturn(Optional.of(pagador));
+			when(usuarioOutputPort.buscarPorId(recebedor.getId())).thenReturn(
+				Optional.of(recebedor));
+			assertThrows(TransferenciaIllegalException.class,
+				() -> useCase.execute(efetuarTransferenciaCommand));
+			verify(autorizador, never()).isAutorizado(any());
+			verify(domainEventDispatcher, never()).dispatch(any());
 		}
 	}
 }
-

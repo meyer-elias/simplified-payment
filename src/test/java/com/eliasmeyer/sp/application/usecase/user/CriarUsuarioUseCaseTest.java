@@ -25,7 +25,6 @@ import com.eliasmeyer.sp.domain.ports.in.usuario.CriarUsuarioCommand;
 import com.eliasmeyer.sp.domain.ports.out.PasswordEncoder;
 import com.eliasmeyer.sp.domain.ports.out.usuario.UsuarioOutputPort;
 import java.util.Optional;
-import java.util.function.Supplier;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -81,7 +80,7 @@ class CriarUsuarioUseCaseTest {
 
 			verify(usuarioOutputPort, times(1)).salvar(any(Usuario.class));
 			verify(passwordEncoder, times(1)).encode(command.senha());
-			verify(transactionManager, times(1)).execute(any());
+			verify(transactionManager, times(1)).execute(any(Runnable.class));
 		}
 
 		@Test
@@ -96,7 +95,7 @@ class CriarUsuarioUseCaseTest {
 			assertDoesNotThrow(() -> useCase.execute(command));
 
 			verify(usuarioOutputPort, times(1)).salvar(any(Usuario.class));
-			verify(transactionManager, times(1)).execute(any());
+			verify(transactionManager, times(1)).execute(any(Runnable.class));
 		}
 
 		@Test
@@ -112,16 +111,16 @@ class CriarUsuarioUseCaseTest {
 			assertDoesNotThrow(() -> useCase.execute(command));
 
 			verify(usuarioOutputPort, times(1)).salvar(any(Usuario.class));
-			verify(transactionManager, times(1)).execute(any());
+			verify(transactionManager, times(1)).execute(any(Runnable.class));
 		}
 	}
 
 	private void doInvocationTransactionHelperMethod() {
 		doAnswer(invocation -> {
-			Supplier<?> supplier = invocation.getArgument(0);
-			supplier.get();
+			Runnable action = invocation.getArgument(0);
+			action.run();
 			return null;
-		}).when(transactionManager).execute(any());
+		}).when(transactionManager).execute(any(Runnable.class));
 	}
 
 	@Nested
@@ -140,7 +139,7 @@ class CriarUsuarioUseCaseTest {
 				.hasMessageContaining("Documento inválido", exception.getMessage());
 
 			verify(usuarioOutputPort, never()).salvar(any());
-			verify(transactionManager, never()).execute(any());
+			verify(transactionManager, never()).execute(any(Runnable.class));
 		}
 
 		@Test
@@ -155,7 +154,7 @@ class CriarUsuarioUseCaseTest {
 				.hasMessageContaining("Email inválido", exception.getMessage());
 
 			verify(usuarioOutputPort, never()).salvar(any());
-			verify(transactionManager, never()).execute(any());
+			verify(transactionManager, never()).execute(any(Runnable.class));
 		}
 
 		@Test
@@ -169,7 +168,7 @@ class CriarUsuarioUseCaseTest {
 			assertEquals("Nome deve ter pelo menos 3 caracteres", exception.getMessage());
 
 			verify(usuarioOutputPort, never()).salvar(any());
-			verify(transactionManager, never()).execute(any());
+			verify(transactionManager, never()).execute(any(Runnable.class));
 		}
 	}
 
@@ -192,7 +191,7 @@ class CriarUsuarioUseCaseTest {
 
 			verify(usuarioOutputPort, never()).buscarPorEmail(any());
 			verify(usuarioOutputPort, never()).salvar(any());
-			verify(transactionManager, never()).execute(any());
+			verify(transactionManager, never()).execute(any(Runnable.class));
 		}
 
 		@Test
@@ -211,7 +210,7 @@ class CriarUsuarioUseCaseTest {
 			assertEquals("Email já cadastrado no sistema", exception.getMessage());
 
 			verify(usuarioOutputPort, never()).salvar(any());
-			verify(transactionManager, never()).execute(any());
+			verify(transactionManager, never()).execute(any(Runnable.class));
 		}
 	}
 
@@ -234,26 +233,28 @@ class CriarUsuarioUseCaseTest {
 				() -> useCase.execute(command));
 			assertInstanceOf(RegistradorUsuarioIndisponivelException.class, exception);
 
-			verify(appLogger, times(1)).error(eq("Erro ao registrar usuário."),
+			verify(appLogger, times(1)).error(eq("Erro ao registrar usuário no BD."),
 				any(RuntimeException.class));
-			verify(transactionManager, times(1)).execute(any());
+			verify(transactionManager, times(1)).execute(any(Runnable.class));
 		}
 
 		@Test
-		@DisplayName("Deve logar erro quando ocorre exceção durante registro")
+		@DisplayName("Deve logar erro quando BD falha ao salvar usuário")
 		void shouldLogErrorWhenExceptionOcorre() {
 			CriarUsuarioCommand command = criarCommandValido();
 			RuntimeException excecaoSimulada = new RuntimeException("Erro de conexão");
 
 			when(usuarioOutputPort.buscarPorDocumento(any(Documento.class))).thenReturn(
 				Optional.empty());
-			doThrow(excecaoSimulada).when(usuarioOutputPort).buscarPorEmail(any(Email.class));
+			when(usuarioOutputPort.buscarPorEmail(any(Email.class))).thenReturn(Optional.empty());
+			doThrow(excecaoSimulada).when(usuarioOutputPort).salvar(any(Usuario.class));
 
-			assertThrows(RuntimeException.class,
+			assertThrows(RegistradorUsuarioIndisponivelException.class,
 				() -> useCase.execute(command));
 
-			verify(appLogger, never()).error("Erro ao registrar usuário.", excecaoSimulada);
-			verify(transactionManager, never()).execute(any());
+			verify(appLogger, times(1)).error("Erro ao registrar usuário no BD.",
+				excecaoSimulada);
+			verify(transactionManager, times(1)).execute(any(Runnable.class));
 		}
 	}
 }

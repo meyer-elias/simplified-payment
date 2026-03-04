@@ -63,10 +63,10 @@ public class CriarUsuarioUseCase implements CriarUsuarioInputPort {
 				// Persiste usuário
 				usuarioOutputPort.salvar(novoUsuario);
 			} catch (Exception ex) {
-				appLogger.error("Erro ao registrar usuário.", ex);
+				appLogger.error("Erro ao registrar usuário no BD. Documento: {}, Email: {}",
+					ex, documento, email);
 				throw new RegistradorUsuarioIndisponivelException("Erro ao registrar usuário.", ex);
 			}
-			return null;
 		});
 	}
 }

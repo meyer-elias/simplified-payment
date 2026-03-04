@@ -41,7 +41,6 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
 
 	public void reservar() {
 		if (!pagador.canEnviarDinheiro()) {
-			falhar();
 			throw new LojistaNaoPodeTransferirDinheiroException(
 				"Lojista nao pode transferir dinheiro");
 		}
@@ -61,13 +60,17 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
 
 	public void cancelar() {
 		pagador.getCarteira().cancelarReserva(this.quantia);
-		recebedor.getCarteira().cancelarReserva(this.quantia);
 		state.cancelar(this);
 		atualizadoEm = LocalDateTime.now();
 		this.registerEvent(() -> new TransferenciaCanceladaEvento(this, atualizadoEm));
 	}
 
 	public void falhar() {
+		// Cancela a reserva da carteira em memória independente do BD,
+		// pois se chegamos aqui o dinheiro ainda está bloqueado no pagador.
+		if (isReservada()) {
+			pagador.getCarteira().cancelarReserva(this.quantia);
+		}
 		state.falhar(this);
 		atualizadoEm = LocalDateTime.now();
 		this.registerEvent(() -> new TransferenciaFalhadaEvento(this, atualizadoEm));
@@ -75,10 +78,6 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
 
 	public boolean isReservada() {
 		return state instanceof TransferenciaReservada;
-	}
-
-	public boolean isCancelada() {
-		return state instanceof TransferenciaCancelada;
 	}
 
 	public Usuario getPagador() {
