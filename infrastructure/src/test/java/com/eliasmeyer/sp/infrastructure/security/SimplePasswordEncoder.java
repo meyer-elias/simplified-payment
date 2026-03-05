@@ -1,4 +1,4 @@
-package com.eliasmeyer.sp.core;
+package com.eliasmeyer.sp.infrastructure.security;
 
 import com.eliasmeyer.sp.core.domain.ports.out.PasswordEncoder;
 

@@ -9,7 +9,7 @@
     <version>1.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>simplified-paymente-core</artifactId>
+  <artifactId>simplified-payment-core</artifactId>
 
   <properties>
   </properties>
