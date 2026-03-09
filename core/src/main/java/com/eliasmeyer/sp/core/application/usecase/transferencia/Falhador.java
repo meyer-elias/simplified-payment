@@ -3,21 +3,21 @@ package com.eliasmeyer.sp.core.application.usecase.transferencia;
 import com.eliasmeyer.sp.core.application.ports.TransactionManager;
 import com.eliasmeyer.sp.core.application.shared.ApplicationException;
 import com.eliasmeyer.sp.core.domain.model.transferencia.Transferencia;
+import com.eliasmeyer.sp.core.domain.ports.out.carteira.CarteiraOutputPort;
 import com.eliasmeyer.sp.core.domain.ports.out.transferencia.TransferenciaOutputPort;
-import com.eliasmeyer.sp.core.domain.ports.out.usuario.UsuarioOutputPort;
 
 class Falhador {
 
 	private final TransactionManager transactionManager;
 
-	private final UsuarioOutputPort usuarioOutputPort;
+	private final CarteiraOutputPort carteiraOutputPort;
 
 	private final TransferenciaOutputPort transferenciaOutputPort;
 
-	Falhador(TransactionManager transactionManager, UsuarioOutputPort usuarioOutputPort,
+	Falhador(TransactionManager transactionManager, CarteiraOutputPort carteiraOutputPort,
 		TransferenciaOutputPort transferenciaOutputPort) {
 		this.transactionManager = transactionManager;
-		this.usuarioOutputPort = usuarioOutputPort;
+		this.carteiraOutputPort = carteiraOutputPort;
 		this.transferenciaOutputPort = transferenciaOutputPort;
 	}
 
@@ -46,7 +46,7 @@ class Falhador {
 		try {
 			transactionManager.execute(() -> {
 				transferenciaOutputPort.salvar(transferencia);
-				usuarioOutputPort.salvar(transferencia.getPagador());
+				carteiraOutputPort.salvar(transferencia.getPagador());
 			});
 		} catch (Exception saveEx) {
 			// BD fora: reversão em memória já foi feita

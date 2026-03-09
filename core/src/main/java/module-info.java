@@ -4,7 +4,6 @@ module simplified.payment.core {
 	exports com.eliasmeyer.sp.core.domain.model.carteira;
 	exports com.eliasmeyer.sp.core.domain.model.transferencia;
 	exports com.eliasmeyer.sp.core.domain.model.transferencia.eventos;
-	exports com.eliasmeyer.sp.core.domain.exception;
 	exports com.eliasmeyer.sp.core.domain.shared;
 	exports com.eliasmeyer.sp.core.domain.shared.identifier;
 	exports com.eliasmeyer.sp.core.domain.ports.in.transferencia;
@@ -20,6 +19,9 @@ module simplified.payment.core {
 	exports com.eliasmeyer.sp.core.application.usecase.transferencia;
 	exports com.eliasmeyer.sp.core.application.usecase.transferencia.handler;
 	exports com.eliasmeyer.sp.core.application.usecase.user;
+	exports com.eliasmeyer.sp.core.domain.model.transferencia.exception;
+	exports com.eliasmeyer.sp.core.domain.model.carteira.exception;
+	exports com.eliasmeyer.sp.core.domain.ports.out.carteira;
 
 	// Módulos requeridos pelo core
 	requires java.base;

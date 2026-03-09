@@ -18,6 +18,15 @@
     <maven.compiler.source>25</maven.compiler.source>
     <maven.compiler.target>25</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- Quarkus -->
+    <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+    <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
+    <quarkus.platform.version>3.32.2</quarkus.platform.version>
+    <compiler-plugin.version>3.11.0</compiler-plugin.version>
+    <surefire-plugin.version>3.1.2</surefire-plugin.version>
+
+    <!-- Testes -->
     <assertj.version>3.27.7</assertj.version>
     <junit.version>6.0.3</junit.version>
     <mockito.version>5.21.0</mockito.version>
@@ -38,6 +47,13 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>${quarkus.platform.artifact-id}</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <!-- JUnit 5 (Jupiter) -->
       <dependency>
         <groupId>org.junit.jupiter</groupId>

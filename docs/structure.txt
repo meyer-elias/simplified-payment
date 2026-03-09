@@ -1,0 +1,33 @@
+simplified-payment/
+├── pom.xml (parent)
+├── core/
+│   ├── pom.xml
+│   └── src/main/java/com/eliasmeyer/sp/core/
+│       ├── domain/
+│       │   ├── shared/
+│       │   ├── usuario/
+│       │   │   ├── Usuario.java
+│       │   │   ├── Carteira.java
+│       │   │   └── ...
+│       │   └── transferencia/
+│       │       ├── Transferencia.java
+│       │       └── ...
+│       └── application/
+│           ├── port/in/          # Use cases interfaces
+│           ├── port/out/         # Repository interfaces
+│           └── service/          # Use cases implementations
+│               ├── usuario/
+│               └── transferencia/
+│
+├── infrastructure/
+│   ├── pom.xml (depende de core)
+│   └── src/main/java/com/eliasmeyer/sp/infrastructure/
+│       ├── persistence/        # JPA adapters (futuro)
+│       ├── web/               # REST controllers (futuro)
+│       ├── security/          # SimplePasswordEncoder atual
+│       └── config/            # Spring beans
+│
+└── app/
+    ├── pom.xml (depende de core + infrastructure)
+    └── src/main/java/com/eliasmeyer/sp/app/
+        └── Application.java  # Spring Boot main

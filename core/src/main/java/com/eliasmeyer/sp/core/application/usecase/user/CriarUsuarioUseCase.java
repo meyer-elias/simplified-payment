@@ -2,6 +2,9 @@ package com.eliasmeyer.sp.core.application.usecase.user;
 
 import com.eliasmeyer.sp.core.application.exception.RegistradorUsuarioIndisponivelException;
 import com.eliasmeyer.sp.core.application.ports.TransactionManager;
+import com.eliasmeyer.sp.core.domain.model.carteira.Carteira;
+import com.eliasmeyer.sp.core.domain.model.carteira.CarteiraFactory;
+import com.eliasmeyer.sp.core.domain.model.carteira.Dinheiro;
 import com.eliasmeyer.sp.core.domain.model.usuario.Documento;
 import com.eliasmeyer.sp.core.domain.model.usuario.DocumentoFactory;
 import com.eliasmeyer.sp.core.domain.model.usuario.Email;
@@ -11,23 +14,32 @@ import com.eliasmeyer.sp.core.domain.model.usuario.UsuarioFactory;
 import com.eliasmeyer.sp.core.domain.ports.in.usuario.CriarUsuarioCommand;
 import com.eliasmeyer.sp.core.domain.ports.in.usuario.CriarUsuarioInputPort;
 import com.eliasmeyer.sp.core.domain.ports.out.PasswordEncoder;
+import com.eliasmeyer.sp.core.domain.ports.out.carteira.CarteiraOutputPort;
 import com.eliasmeyer.sp.core.domain.ports.out.usuario.UsuarioOutputPort;
 
 /**
- * Caso de uso para criar um novo usuário.
- * <p>
- * Responsável por: - Validar entrada (comando) - Verificar duplicatas (documento e email) - Criar o
- * usuário apropriado (Comum ou Lojista) - Persistir o usuário
+ * Use case responsável por criar um usuário no sistema.
+ *
+ * @author Elias Meyer
+ * @version 1.0
+ * @since 1.0
  */
 public class CriarUsuarioUseCase implements CriarUsuarioInputPort {
 
 	private final UsuarioOutputPort usuarioOutputPort;
+
+	private final CarteiraOutputPort carteiraOutputPort;
+
 	private final PasswordEncoder passwordEncoder;
+
 	private final TransactionManager transactionManager;
 
-	public CriarUsuarioUseCase(UsuarioOutputPort usuarioOutputPort, PasswordEncoder passwordEncoder,
+	public CriarUsuarioUseCase(UsuarioOutputPort usuarioOutputPort,
+		CarteiraOutputPort carteiraOutputPort,
+		PasswordEncoder passwordEncoder,
 		TransactionManager transactionManager) {
 		this.usuarioOutputPort = usuarioOutputPort;
+		this.carteiraOutputPort = carteiraOutputPort;
 		this.passwordEncoder = passwordEncoder;
 		this.transactionManager = transactionManager;
 	}
@@ -55,10 +67,14 @@ public class CriarUsuarioUseCase implements CriarUsuarioInputPort {
 		String senhaHasheada = passwordEncoder.encode(comando.senha());
 		Usuario novoUsuario = UsuarioFactory.criar(documento, nome, email, senhaHasheada);
 
+		Carteira carteira = CarteiraFactory.criar(novoUsuario,
+			new Dinheiro(comando.valorInicial()));
+
 		transactionManager.execute(() -> {
 			try {
-				// Persiste usuário
+				// Persiste
 				usuarioOutputPort.salvar(novoUsuario);
+				carteiraOutputPort.salvar(carteira);
 			} catch (Exception ex) {
 				throw new RegistradorUsuarioIndisponivelException("Erro ao registrar usuário.", ex);
 			}

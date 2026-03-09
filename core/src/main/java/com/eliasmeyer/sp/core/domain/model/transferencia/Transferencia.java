@@ -1,21 +1,23 @@
 package com.eliasmeyer.sp.core.domain.model.transferencia;
 
-import com.eliasmeyer.sp.core.domain.exception.LojistaNaoPodeTransferirDinheiroException;
+import com.eliasmeyer.sp.core.domain.model.carteira.Carteira;
 import com.eliasmeyer.sp.core.domain.model.carteira.Dinheiro;
 import com.eliasmeyer.sp.core.domain.model.transferencia.eventos.TransferenciaCanceladaEvento;
 import com.eliasmeyer.sp.core.domain.model.transferencia.eventos.TransferenciaFalhadaEvento;
 import com.eliasmeyer.sp.core.domain.model.transferencia.eventos.TransferenciaRealizadaEvento;
 import com.eliasmeyer.sp.core.domain.model.transferencia.eventos.TransferenciaReservadaEvento;
-import com.eliasmeyer.sp.core.domain.model.usuario.Usuario;
+import com.eliasmeyer.sp.core.domain.model.transferencia.exception.LojistaNaoPodeTransferirDinheiroException;
+import com.eliasmeyer.sp.core.domain.model.transferencia.exception.TransferenciaParaSiMesmoException;
+import com.eliasmeyer.sp.core.domain.model.transferencia.exception.TransferenciaQuantiaInvalidaException;
 import com.eliasmeyer.sp.core.domain.shared.AggregateRoot;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class Transferencia extends AggregateRoot<TransferenciaId> {
 
-	private final Usuario pagador;
+	private final Carteira carteiraPagador;
 
-	private final Usuario recebedor;
+	private final Carteira carteiraRecebedor;
 
 	private final Dinheiro quantia;
 
@@ -25,41 +27,91 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
 
 	private TransferenciaState state;
 
-	public Transferencia(Usuario pagador, Usuario recebedor, Dinheiro quantia) {
+	private TransferenciaStatus status;
+
+	public Transferencia(Carteira carteiraPagador,
+		Carteira carteiraRecebedor, Dinheiro quantia) {
 		super(new TransferenciaId());
-		this.pagador = pagador;
-		this.recebedor = recebedor;
+		this.carteiraPagador = carteiraPagador;
+		this.carteiraRecebedor = carteiraRecebedor;
 		this.quantia = quantia;
 		this.criadoEm = LocalDateTime.now();
 		this.atualizadoEm = LocalDateTime.now();
 		this.state = new TransferenciaCriada();
+		this.status = TransferenciaStatus.CRIADA;
+	}
+
+	Transferencia(TransferenciaReconstituicao reconstituicao) {
+		super(reconstituicao.id());
+		this.carteiraPagador = reconstituicao.carteiraPagador();
+		this.carteiraRecebedor = reconstituicao.carteiraRecebedor();
+		this.quantia = reconstituicao.quantia();
+		this.criadoEm = reconstituicao.criadoEm();
+		this.atualizadoEm = reconstituicao.atualizadoEm();
+		this.state = resolverState(reconstituicao.status());
+		this.status = reconstituicao.status();
+	}
+
+	private TransferenciaState resolverState(TransferenciaStatus status) {
+		return switch (status) {
+			case CRIADA -> new TransferenciaCriada();
+			case RESERVADA -> new TransferenciaReservada();
+			case REALIZADA -> new TransferenciaRealizada();
+			case CANCELADA -> new TransferenciaCancelada();
+			case FALHADA -> new TransferenciaFalhada();
+		};
 	}
 
 	void mudarState(TransferenciaState state) {
 		this.state = state;
+		this.status = resolverStatus(state);
+	}
+
+	private TransferenciaStatus resolverStatus(TransferenciaState state) {
+		return switch (state) {
+			case TransferenciaCriada _ -> TransferenciaStatus.CRIADA;
+			case TransferenciaReservada _ -> TransferenciaStatus.RESERVADA;
+			case TransferenciaRealizada _ -> TransferenciaStatus.REALIZADA;
+			case TransferenciaCancelada _ -> TransferenciaStatus.CANCELADA;
+			case TransferenciaFalhada _ -> TransferenciaStatus.FALHADA;
+			default -> throw new IllegalStateException("Estado desconhecido: " + state.getClass());
+		};
 	}
 
 	public void reservar() {
-		if (!pagador.canEnviarDinheiro()) {
-			throw new LojistaNaoPodeTransferirDinheiroException(
-				"Lojista nao pode transferir dinheiro");
+		if (this.carteiraPagador.equals(carteiraRecebedor)) {
+			throw new TransferenciaParaSiMesmoException(
+				String.format(
+					"Não é permitido transação de transferência [%s] para si mesmo.", this.id));
 		}
-		pagador.getCarteira().reservar(this.quantia);
+
+		if (quantia.isZero()) {
+			throw new TransferenciaQuantiaInvalidaException(
+				String.format("Transação de transferência [id=%s] precisa de valor maior que zero.",
+					this.id));
+		}
+
+		if (!carteiraPagador.podeEnviarDinheiro()) {
+			throw new LojistaNaoPodeTransferirDinheiroException(String.format(
+				"Lojistas [%s] não podem realizar cessão de valor na transação de transferência [id=%s].",
+				carteiraPagador.getUsuarioId(), this.id));
+		}
+		carteiraPagador.reservar(this.quantia);
 		state.reservar(this);
 		atualizadoEm = LocalDateTime.now();
 		this.registerEvent(() -> new TransferenciaReservadaEvento(this, atualizadoEm));
 	}
 
 	public void realizar() {
-		pagador.getCarteira().confirmarReserva(this.quantia);
-		recebedor.getCarteira().creditar(this.quantia);
+		carteiraPagador.confirmarReserva(this.quantia);
+		carteiraRecebedor.creditar(this.quantia);
 		state.completar(this);
 		atualizadoEm = LocalDateTime.now();
 		this.registerEvent(() -> new TransferenciaRealizadaEvento(this, atualizadoEm));
 	}
 
 	public void cancelar() {
-		pagador.getCarteira().cancelarReserva(this.quantia);
+		carteiraPagador.cancelarReserva(this.quantia);
 		state.cancelar(this);
 		atualizadoEm = LocalDateTime.now();
 		this.registerEvent(() -> new TransferenciaCanceladaEvento(this, atualizadoEm));
@@ -69,7 +121,7 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
 		// Cancela a reserva da carteira em memória independente do BD,
 		// pois se chegamos aqui o dinheiro ainda está bloqueado no pagador.
 		if (isReservada()) {
-			pagador.getCarteira().cancelarReserva(this.quantia);
+			carteiraPagador.cancelarReserva(this.quantia);
 		}
 		state.falhar(this);
 		atualizadoEm = LocalDateTime.now();
@@ -80,12 +132,12 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
 		return state instanceof TransferenciaReservada;
 	}
 
-	public Usuario getPagador() {
-		return pagador;
+	public Carteira getPagador() {
+		return carteiraPagador;
 	}
 
-	public Usuario getRecebedor() {
-		return recebedor;
+	public Carteira getRecebedor() {
+		return carteiraRecebedor;
 	}
 
 	public Dinheiro getQuantia() {
@@ -100,6 +152,10 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
 		return atualizadoEm;
 	}
 
+	public TransferenciaStatus getStatus() {
+		return status;
+	}
+
 	@Override
 	public final boolean equals(Object o) {
 		if (!(o instanceof Transferencia that)) {
@@ -109,11 +165,11 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
 			return false;
 		}
 
-		return Objects.equals(i, that.i);
+		return Objects.equals(id, that.id);
 	}
 
 	@Override
 	public int hashCode() {
-		return 31 * Objects.hashCode(this.i);
+		return 31 * Objects.hashCode(this.id);
 	}
 }

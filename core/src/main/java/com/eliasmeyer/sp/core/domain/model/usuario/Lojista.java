@@ -11,13 +11,5 @@ public class Lojista extends Usuario {
 	public Lojista(Cnpj cnpj, Nome nome, Email email, String senha) {
 		super(cnpj, nome, email, senha, TipoUsuario.LOJISTA);
 	}
-
-	/**
-	 * Lojas não podem enviar dinheiro.
-	 */
-	@Override
-	public boolean canEnviarDinheiro() {
-		return false;
-	}
 }
 

@@ -1,24 +1,27 @@
 package com.eliasmeyer.sp.core.application.usecase.transferencia;
 
-import com.eliasmeyer.sp.core.application.exception.TransferenciaIllegalException;
+import com.eliasmeyer.sp.core.application.exception.TransferenciaRejeitadaException;
 import com.eliasmeyer.sp.core.application.ports.TransactionManager;
 import com.eliasmeyer.sp.core.application.shared.ApplicationException;
+import com.eliasmeyer.sp.core.domain.model.carteira.Carteira;
+import com.eliasmeyer.sp.core.domain.model.carteira.exception.CarteiraException;
 import com.eliasmeyer.sp.core.domain.model.transferencia.Transferencia;
-import com.eliasmeyer.sp.core.domain.model.usuario.Usuario;
+import com.eliasmeyer.sp.core.domain.model.transferencia.exception.TransferenciaException;
+import com.eliasmeyer.sp.core.domain.ports.out.carteira.CarteiraOutputPort;
 import com.eliasmeyer.sp.core.domain.ports.out.transferencia.TransferenciaOutputPort;
-import com.eliasmeyer.sp.core.domain.ports.out.usuario.UsuarioOutputPort;
-import com.eliasmeyer.sp.core.domain.shared.DomainException;
 
 class Reservador {
 
 	private final TransferenciaOutputPort transferenciaOutputPort;
-	private final UsuarioOutputPort usuarioOutputPort;
+
+	private final CarteiraOutputPort carteiraOutputPort;
+
 	private final TransactionManager transactionManager;
 
 	Reservador(TransferenciaOutputPort transferenciaOutputPort,
-		UsuarioOutputPort usuarioOutputPort, TransactionManager transactionManager) {
+		CarteiraOutputPort carteiraOutputPort, TransactionManager transactionManager) {
 		this.transferenciaOutputPort = transferenciaOutputPort;
-		this.usuarioOutputPort = usuarioOutputPort;
+		this.carteiraOutputPort = carteiraOutputPort;
 		this.transactionManager = transactionManager;
 	}
 
@@ -27,14 +30,14 @@ class Reservador {
 	}
 
 	private void reservar(Transferencia transferencia) {
-		Usuario uPagador = transferencia.getPagador();
+		Carteira cPagador = transferencia.getPagador();
 		try {
 			transferencia.reservar();
 			transferenciaOutputPort.salvar(transferencia);
-			usuarioOutputPort.salvar(uPagador);
-		} catch (DomainException e) {
-			throw new TransferenciaIllegalException(
-				"Transferência inválida por restrição da regra de negócio.", e);
+			carteiraOutputPort.salvar(cPagador);
+		} catch (CarteiraException | TransferenciaException e) {
+			throw new TransferenciaRejeitadaException(
+				"Transferência não realizada por violação da regra de negócio.", e);
 		} catch (Exception e) {
 			throw new ApplicationException(
 				String.format("Erro técnico ao reservar quantia financeira para transferência %s",

@@ -8,20 +8,10 @@ public final class Dinheiro implements Comparable<Dinheiro> {
 
 	private BigDecimal valor;
 
-	/**
-	 * Cria uma instância de Dinheiro com valor zero. Uso restrito a contextos internos de domínio
-	 * (ex: saldo inicial da Carteira).
-	 */
-	static Dinheiro zero() {
-		Dinheiro d = new Dinheiro(BigDecimal.ONE);
-		d.valor = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_EVEN);
-		return d;
-	}
-
 	public Dinheiro(BigDecimal valor) {
-		Objects.requireNonNull(valor, "Valor não pode ser nulo");
-		if (valor.compareTo(BigDecimal.ZERO) <= 0) {
-			throw new IllegalArgumentException("Valor deve ser maior que zero");
+		Objects.requireNonNull(valor, "Valor não pode ser nulo.");
+		if (valor.compareTo(BigDecimal.ZERO) < 0) {
+			throw new IllegalArgumentException("Valor não pode ser negativo.");
 		}
 
 		this.valor = valor.setScale(2, RoundingMode.HALF_EVEN);
@@ -32,6 +22,14 @@ public final class Dinheiro implements Comparable<Dinheiro> {
 			throw new IllegalArgumentException("Valor é nulo ou está vazio");
 		}
 		this(new BigDecimal(valor));
+	}
+
+	static Dinheiro zero() {
+		return new Dinheiro("0.0");
+	}
+
+	public boolean isZero() {
+		return this.valor.compareTo(BigDecimal.ZERO) == 0;
 	}
 
 	public boolean isNegativo() {

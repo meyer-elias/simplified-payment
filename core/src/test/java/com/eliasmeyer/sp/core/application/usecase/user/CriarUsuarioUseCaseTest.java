@@ -21,6 +21,7 @@ import com.eliasmeyer.sp.core.domain.model.usuario.Email;
 import com.eliasmeyer.sp.core.domain.model.usuario.Usuario;
 import com.eliasmeyer.sp.core.domain.ports.in.usuario.CriarUsuarioCommand;
 import com.eliasmeyer.sp.core.domain.ports.out.PasswordEncoder;
+import com.eliasmeyer.sp.core.domain.ports.out.carteira.CarteiraOutputPort;
 import com.eliasmeyer.sp.core.domain.ports.out.usuario.UsuarioOutputPort;
 import java.util.Optional;
 import org.assertj.core.api.Assertions;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.Test;
 class CriarUsuarioUseCaseTest {
 
 	private UsuarioOutputPort usuarioOutputPort;
+	private CarteiraOutputPort carteiraOutputPort;
 	private PasswordEncoder passwordEncoder;
 	private TransactionManager transactionManager;
 
@@ -43,16 +45,18 @@ class CriarUsuarioUseCaseTest {
 		usuarioOutputPort = mock(UsuarioOutputPort.class);
 		passwordEncoder = mock(PasswordEncoder.class);
 		transactionManager = mock(TransactionManager.class);
+		carteiraOutputPort = mock(CarteiraOutputPort.class);
 		doInvocationTransactionHelperMethod();
 
-		useCase = new CriarUsuarioUseCase(usuarioOutputPort, passwordEncoder, transactionManager);
+		useCase = new CriarUsuarioUseCase(usuarioOutputPort, carteiraOutputPort, passwordEncoder,
+			transactionManager);
 
 		when(passwordEncoder.encode(anyString())).thenReturn("senhaHasheada123");
 	}
 
 	private CriarUsuarioCommand criarCommand(String nome, String documento, String email,
 		String senha) {
-		return new CriarUsuarioCommand(nome, documento, email, senha);
+		return new CriarUsuarioCommand(nome, documento, email, senha, "150.00");
 	}
 
 	private CriarUsuarioCommand criarCommandValido() {

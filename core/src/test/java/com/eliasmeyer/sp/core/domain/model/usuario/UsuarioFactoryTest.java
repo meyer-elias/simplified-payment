@@ -56,32 +56,6 @@ class UsuarioFactoryTest {
 	}
 
 	@Test
-	@DisplayName("UsuarioComum pode enviar dinheiro")
-	void usuarioComumShouldBeAbleToSendMoney() {
-		Cpf cpf = new Cpf("69003525021");
-		Nome nome = new Nome("Maria Souza");
-		Email email = new Email("maria@email.com");
-		String senha = "senhaHash789";
-
-		Usuario usuario = UsuarioFactory.criar(cpf, nome, email, senha);
-
-		assertTrue(usuario.canEnviarDinheiro());
-	}
-
-	@Test
-	@DisplayName("Lojista não deve poder enviar dinheiro")
-	void lojistaShouldNotBeAbleToSendMoney() {
-		Cnpj cnpj = new Cnpj("43603788000133");
-		Nome nome = new Nome("Loja Exemplo");
-		Email email = new Email("loja@exemplo.com");
-		String senha = "senhaHash012";
-
-		Usuario usuario = UsuarioFactory.criar(cnpj, nome, email, senha);
-
-		assertFalse(usuario.canEnviarDinheiro());
-	}
-
-	@Test
 	@DisplayName("Deve lançar exceção para tipo de documento desconhecido")
 	void shouldThrowExceptionForUnknownDocumentType() {
 		Documento documentoDesconhecido = new Documento("DOC123") {
@@ -94,18 +68,16 @@ class UsuarioFactoryTest {
 		Email email = new Email("teste@email.com");
 		String senha = "senhaHash";
 
-		IllegalArgumentException exception = assertThrows(
-			IllegalArgumentException.class,
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
 			() -> UsuarioFactory.criar(documentoDesconhecido, nome, email, senha),
-			"Deveria lançar IllegalArgumentException para tipo de documento desconhecido"
-		);
+			"Deveria lançar IllegalArgumentException para tipo de documento desconhecido");
 
 		assertTrue(exception.getMessage().contains("Tipo de documento inválido"));
 	}
 
 	@Test
-	@DisplayName("UsuarioComum deve possuir carteira")
-	void usuarioComumShouldHaveCarteira() {
+	@DisplayName("UsuarioComum deve ter UsuarioId")
+	void usuarioComumShouldHaveUsuarioId() {
 		Cpf cpf = new Cpf("12345678909");
 		Nome nome = new Nome("Pedro Santos");
 		Email email = new Email("pedro@email.com");
@@ -113,12 +85,12 @@ class UsuarioFactoryTest {
 
 		Usuario usuario = UsuarioFactory.criar(cpf, nome, email, senha);
 
-		assertNotNull(usuario.getCarteira());
+		assertNotNull(usuario.getUsuarioId());
 	}
 
 	@Test
-	@DisplayName("Lojista deve possuir carteira")
-	void lojistaShouldHaveCarteira() {
+	@DisplayName("Lojista deve ter UsuarioId")
+	void lojistaShouldHaveUsuarioId() {
 		Cnpj cnpj = new Cnpj("11222333000181");
 		Nome nome = new Nome("Mercado ABC");
 		Email email = new Email("mercado@abc.com");
@@ -126,6 +98,6 @@ class UsuarioFactoryTest {
 
 		Usuario usuario = UsuarioFactory.criar(cnpj, nome, email, senha);
 
-		assertNotNull(usuario.getCarteira());
+		assertNotNull(usuario.getUsuarioId());
 	}
 }

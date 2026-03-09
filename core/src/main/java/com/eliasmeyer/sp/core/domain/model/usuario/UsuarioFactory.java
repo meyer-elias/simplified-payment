@@ -3,8 +3,7 @@ package com.eliasmeyer.sp.core.domain.model.usuario;
 /**
  * Factory para criação de usuários (Comum ou Lojista).
  * <p>
- * Responsável por instanciar o tipo correto de usuário baseado no tipo de documento, evitando uso
- * de instanceof na aplicação.
+ * Responsável por instanciar o tipo correto de usuário baseado no tipo de documento.
  */
 public class UsuarioFactory {
 
@@ -12,23 +11,22 @@ public class UsuarioFactory {
 	}
 
 	/**
-	 * Cria um usuário baseado no tipo de documento.
+	 * Cria um usuário baseado no tipo de documento usando pattern matching.
 	 *
 	 * @param documento documento do usuário (CPF ou CNPJ)
 	 * @param nome      nome do usuário
 	 * @param email     email do usuário
 	 * @param senha     senha hasheada do usuário
 	 * @return instância de UsuarioComum ou Lojista
-	 * @throws IllegalArgumentException se o documento é de tipo inválido
+	 * @throws IllegalArgumentException se o tipo de documento é inválido.
 	 */
 	public static Usuario criar(Documento documento, Nome nome, Email email, String senha) {
-		if (documento instanceof Cpf cpf) {
-			return new UsuarioComum(cpf, nome, email, senha);
-		} else if (documento instanceof Cnpj cnpj) {
-			return new Lojista(cnpj, nome, email, senha);
-		}
-		throw new IllegalArgumentException(
-			"Tipo de documento inválido: " + documento.getClass().getSimpleName());
+		return switch (documento) {
+			case Cpf cpf -> new UsuarioComum(cpf, nome, email, senha);
+			case Cnpj cnpj -> new Lojista(cnpj, nome, email, senha);
+			default -> throw new IllegalArgumentException(
+				"Tipo de documento inválido: " + documento.getClass().getSimpleName());
+		};
 	}
 }
 

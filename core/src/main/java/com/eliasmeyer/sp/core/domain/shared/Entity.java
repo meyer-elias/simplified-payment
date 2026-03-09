@@ -12,19 +12,19 @@ import java.util.Objects;
  */
 public abstract class Entity<I extends Identifier<?>> {
 
-	protected final I i;
+	protected final I id;
 
-	protected Entity(I i) {
-		Objects.requireNonNull(i, "Id não pode ser nulo");
-		this.i = i;
+	protected Entity(I id) {
+		Objects.requireNonNull(id, "Id não pode ser nulo");
+		this.id = id;
 	}
 
 	public I getId() {
-		return i;
+		return id;
 	}
 
 	public <R extends Serializable & Comparable<R>> R getIdValue() {
-		return (R) i.getValue();
+		return (R) id.getValue();
 	}
 
 	@Override
@@ -37,16 +37,16 @@ public abstract class Entity<I extends Identifier<?>> {
 		}
 
 		Entity<?> other = (Entity<?>) obj;
-		return Objects.equals(i, other.i);
+		return Objects.equals(id, other.id);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(i);
+		return Objects.hash(id);
 	}
 
 	@Override
 	public String toString() {
-		return getClass().getSimpleName() + "[id=" + i + "]";
+		return getClass().getSimpleName() + "[id=" + id + "]";
 	}
 }

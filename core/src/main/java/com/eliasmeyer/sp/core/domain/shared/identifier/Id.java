@@ -38,7 +38,7 @@ public class Id extends GenericIdentifier<UUID> {
 
 	@Override
 	public String toString() {
-		return String.format("Id[%s:%s]",
+		return String.format("[%s:%s]",
 			this.getValue().getClass().getSimpleName(), this.getValue());
 	}
 }

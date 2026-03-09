@@ -14,7 +14,7 @@ class Autorizador {
 	}
 
 	boolean isAutorizado(Transferencia transferencia) {
-		UsuarioId idPagador = transferencia.getPagador().getId();
+		UsuarioId idPagador = transferencia.getPagador().getUsuarioId();
 		try {
 			return transferenciaAutorizadorOutputPort.isAutorizado(idPagador);
 		} catch (Exception e) {

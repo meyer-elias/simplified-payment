@@ -26,35 +26,11 @@ class DinheiroTest {
 	}
 
 	@Test
-	@DisplayName("Deve lançar exceção para valor zero via BigDecimal")
-	void shouldThrowExceptionForZeroBigDecimal() {
-		IllegalArgumentException exception = assertThrows(
-			IllegalArgumentException.class,
-			() -> new Dinheiro(BigDecimal.ZERO),
-			"Deveria lançar IllegalArgumentException para valor zero"
-		);
-
-		assertTrue(exception.getMessage().contains("maior que zero"));
-	}
-
-	@Test
 	@DisplayName("Deve criar Dinheiro com valor positivo via String")
 	void shouldCreateDinheiroWithPositiveString() {
 		Dinheiro dinheiro = new Dinheiro("250.00");
 
 		assertEquals(new BigDecimal("250.00"), dinheiro.getValor());
-	}
-
-	@Test
-	@DisplayName("Deve lançar exceção para valor zero via String")
-	void shouldThrowExceptionForZeroString() {
-		IllegalArgumentException exception = assertThrows(
-			IllegalArgumentException.class,
-			() -> new Dinheiro("0"),
-			"Deveria lançar IllegalArgumentException para valor zero"
-		);
-
-		assertTrue(exception.getMessage().contains("maior que zero"));
 	}
 
 	@Test

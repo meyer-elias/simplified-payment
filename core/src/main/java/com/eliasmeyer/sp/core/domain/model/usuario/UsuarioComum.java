@@ -10,12 +10,4 @@ public class UsuarioComum extends Usuario {
 	UsuarioComum(Cpf cpf, Nome nome, Email email, String senha) {
 		super(cpf, nome, email, senha, TipoUsuario.COMUM);
 	}
-
-	/**
-	 * Usuários comuns podem enviar dinheiro.
-	 */
-	@Override
-	public boolean canEnviarDinheiro() {
-		return true;
-	}
 }

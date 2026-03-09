@@ -1,7 +1,5 @@
 package com.eliasmeyer.sp.core.domain.model.usuario;
 
-import com.eliasmeyer.sp.core.domain.model.carteira.Carteira;
-import com.eliasmeyer.sp.core.domain.model.carteira.Dinheiro;
 import com.eliasmeyer.sp.core.domain.shared.Entity;
 import java.util.Objects;
 
@@ -11,7 +9,8 @@ import java.util.Objects;
  * Usuários podem ser de dois tipos: - UsuarioComum (CPF): pode enviar dinheiro - Lojista (CNPJ):
  * não pode enviar dinheiro
  * <p>
- * Cada usuário possui uma carteira para gerenciar saldo.
+ * Cada usuário pode ter uma carteira associada para gerenciar saldo, mas a carteira é um agregado
+ * separado.
  */
 public abstract class Usuario extends Entity<UsuarioId> {
 
@@ -21,7 +20,6 @@ public abstract class Usuario extends Entity<UsuarioId> {
 	protected final Email email;
 	protected final String senha;
 	protected final TipoUsuario tipo;
-	protected final Carteira carteira;
 
 	/**
 	 * Construtor protegido para criação de usuários.
@@ -41,13 +39,7 @@ public abstract class Usuario extends Entity<UsuarioId> {
 		this.email = Objects.requireNonNull(email, "Email não pode ser nulo");
 		this.senha = Objects.requireNonNull(senha, "Senha não pode ser nula");
 		this.tipo = Objects.requireNonNull(tipo, "Tipo de usuário não pode ser nulo");
-		this.carteira = new Carteira();
 	}
-
-	/**
-	 * Verifica se o usuário pode enviar dinheiro. Implementado pelas subclasses.
-	 */
-	public abstract boolean canEnviarDinheiro();
 
 	public Documento getDocumento() {
 		return documento;
@@ -69,15 +61,8 @@ public abstract class Usuario extends Entity<UsuarioId> {
 		return tipo;
 	}
 
-	public Carteira getCarteira() {
-		return carteira;
-	}
-
-	/**
-	 * Adiciona dinheiro à carteira do usuário.
-	 */
-	public void receber(Dinheiro quantia) {
-		this.carteira.creditar(quantia);
+	public UsuarioId getUsuarioId() {
+		return usuarioId;
 	}
 
 	/**

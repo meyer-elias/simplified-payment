@@ -1,22 +1,29 @@
 package com.eliasmeyer.sp.core.domain.ports.in.usuario;
 
-public record CriarUsuarioCommand(String nome, String documento, String email, String senha) {
+import java.util.Objects;
+
+public record CriarUsuarioCommand(String nome, String documento, String email, String senha,
+								  String valorInicial) {
 
 	public CriarUsuarioCommand {
-		if (nome == null || nome.trim().isEmpty()) {
+		if (Objects.isNull(nome) || nome.trim().isEmpty()) {
 			throw new IllegalArgumentException("nome é mandatório");
 		}
 
-		if (documento == null || documento.trim().isEmpty()) {
+		if (Objects.isNull(documento) || documento.trim().isEmpty()) {
 			throw new IllegalArgumentException("documento é mandatório");
 		}
 
-		if (email == null || email.trim().isEmpty()) {
+		if (Objects.isNull(email) || email.trim().isEmpty()) {
 			throw new IllegalArgumentException("email é mandatório");
 		}
 
-		if (senha == null || senha.trim().isEmpty()) {
+		if (Objects.isNull(senha) || senha.trim().isEmpty()) {
 			throw new IllegalArgumentException("senha é mandatória");
+		}
+
+		if (Objects.isNull(valorInicial) || valorInicial.trim().isBlank()) {
+			valorInicial = "0.0";
 		}
 	}
 }
