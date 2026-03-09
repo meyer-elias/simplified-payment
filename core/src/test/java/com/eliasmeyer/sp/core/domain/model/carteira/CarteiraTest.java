@@ -101,7 +101,7 @@ class CarteiraTest {
 		void carteiraComumCanEnviarDinheiro() {
 			Carteira carteira = carteiraComum("100.00");
 
-			assertTrue(carteira.canEnviarDinheiro());
+			assertTrue(carteira.podeEnviarDinheiro());
 		}
 
 		@Test
@@ -109,7 +109,7 @@ class CarteiraTest {
 		void carteiraLojistaCannotEnviarDinheiro() {
 			Carteira carteira = carteiraLojista("100.00");
 
-			assertFalse(carteira.canEnviarDinheiro());
+			assertFalse(carteira.podeEnviarDinheiro());
 		}
 	}
 

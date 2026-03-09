@@ -80,7 +80,7 @@ class DinheiroTest {
 			"Deveria lançar IllegalArgumentException para valor negativo"
 		);
 
-		assertTrue(exception.getMessage().contains("maior que zero"));
+		assertTrue(exception.getMessage().contains("não pode ser negativo"));
 	}
 
 	@Test
@@ -92,7 +92,7 @@ class DinheiroTest {
 			"Deveria lançar IllegalArgumentException para valor negativo"
 		);
 
-		assertTrue(exception.getMessage().contains("maior que zero"));
+		assertTrue(exception.getMessage().contains("não pode ser negativo"));
 	}
 
 	@ParameterizedTest
