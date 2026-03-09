@@ -2,8 +2,8 @@ package com.eliasmeyer.sp.infrastructure.rest;
 
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.EfetuarTransferenciaCommand;
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.EfetuarTransferenciaInputPort;
+import com.eliasmeyer.sp.core.domain.ports.in.transferencia.ListarTransferenciaInputPort;
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.ListarTransferenciaPaginadaCommand;
-import com.eliasmeyer.sp.core.domain.ports.in.transferencia.ListarTransferenciaPaginadaInputPort;
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.TransferenciaOutput;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -23,13 +23,13 @@ public class TransferenciaResource {
 
 	private final EfetuarTransferenciaInputPort efetuarTransferenciaInputPort;
 
-	private final ListarTransferenciaPaginadaInputPort listarTransferenciaPaginadaInputPort;
+	private final ListarTransferenciaInputPort listarTransferenciaInputPort;
 
 	@Inject
 	public TransferenciaResource(EfetuarTransferenciaInputPort efetuarTransferenciaInputPort,
-		ListarTransferenciaPaginadaInputPort listarTransferenciaPaginadaInputPort) {
+		ListarTransferenciaInputPort listarTransferenciaInputPort) {
 		this.efetuarTransferenciaInputPort = efetuarTransferenciaInputPort;
-		this.listarTransferenciaPaginadaInputPort = listarTransferenciaPaginadaInputPort;
+		this.listarTransferenciaInputPort = listarTransferenciaInputPort;
 	}
 
 	@POST
@@ -45,6 +45,6 @@ public class TransferenciaResource {
 		@Valid ConsultarTransferenciaRequest request) {
 		ListarTransferenciaPaginadaCommand command = new ListarTransferenciaPaginadaCommand(
 			request.carteiraId(), request.pageInicia(), request.tamanho());
-		return RestResponse.ok(listarTransferenciaPaginadaInputPort.execute(command));
+		return RestResponse.ok(listarTransferenciaInputPort.execute(command));
 	}
 }

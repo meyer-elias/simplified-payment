@@ -3,6 +3,7 @@ package com.eliasmeyer.sp.infrastructure.persistence.transferencia;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
+import java.util.Map;
 
 @ApplicationScoped
 public class TransferenciaJpaAdapter implements
@@ -17,7 +18,7 @@ public class TransferenciaJpaAdapter implements
 			WHERE t.carteiraPagador.id = :carteiraId
 			   OR t.carteiraRecebedor.id = :carteiraId
 			ORDER BY t.atualizadoEm DESC
-			""", carteiraId)
+			""", Map.of("carteiraId", carteiraId))
 			.page(pagina, tamanho)
 			.list();
 	}
