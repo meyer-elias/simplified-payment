@@ -21,6 +21,7 @@
 
 
   <dependencies>
+    <!-- Core business -->
     <dependency>
       <groupId>com.eliasmeyer</groupId>
       <artifactId>simplified-payment-core</artifactId>
@@ -31,6 +32,18 @@
       <artifactId>bcrypt</artifactId>
       <version>${bcrypt.version}</version>
     </dependency>
+
+    <!-- Rest -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-hibernate-validator</artifactId>
+    </dependency>
+
 
     <!--Database-->
     <!-- Versioning database -->
@@ -52,7 +65,7 @@
     <!-- Hibernate ORM specific dependencies -->
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-hibernate-orm</artifactId>
+      <artifactId>quarkus-hibernate-orm-panache</artifactId>
     </dependency>
 
 

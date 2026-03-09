@@ -4,6 +4,20 @@ import com.eliasmeyer.sp.core.domain.model.usuario.UsuarioId;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+
+/**
+ * Classe builder utilizada para reconstituir a entidade da base de dados para o mapper da
+ * infrastructure.
+ * <p>
+ * Essa classe é utilizada para que o mapper infra possa reconstituir a entidade de carteira a
+ * partir dos dados da base de dados, permitindo que o mapper infra possa construir a entidade de
+ * carteira.
+ * <p>
+ * Essa classe não deve ser utilizada diretamente no dominio, apenas no mapper da infra.
+ * <p>
+ * O objetivo dessa classe é ter uma forma de reconstituir a entidade de carteira sem que o dominio
+ * precise se preocupar com a construção da entidade da infra.
+ */
 public final class CarteiraReconstituicao {
 
 	private final CarteiraId carteiraId;

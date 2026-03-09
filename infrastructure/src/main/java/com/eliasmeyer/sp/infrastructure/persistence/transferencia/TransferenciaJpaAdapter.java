@@ -1,9 +1,24 @@
 package com.eliasmeyer.sp.infrastructure.persistence.transferencia;
 
-import jakarta.data.repository.CrudRepository;
-import jakarta.data.repository.Repository;
+import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
+import jakarta.enterprise.context.ApplicationScoped;
+import java.util.List;
 
-@Repository
-public interface TransferenciaJpaAdapter extends CrudRepository<TransferenciaEntity, String> {
+@ApplicationScoped
+public class TransferenciaJpaAdapter implements
+	PanacheRepositoryBase<TransferenciaEntity, String> {
 
+	public List<TransferenciaEntity> findByCarteiraIdPaginada(String carteiraId, int pagina,
+		int tamanho) {
+		return find("""
+			SELECT t FROM TransferenciaEntity t
+			JOIN FETCH t.carteiraPagador
+			JOIN FETCH t.carteiraRecebedor
+			WHERE t.carteiraPagador.id = :carteiraId
+			   OR t.carteiraRecebedor.id = :carteiraId
+			ORDER BY t.atualizadoEm DESC
+			""", carteiraId)
+			.page(pagina, tamanho)
+			.list();
+	}
 }

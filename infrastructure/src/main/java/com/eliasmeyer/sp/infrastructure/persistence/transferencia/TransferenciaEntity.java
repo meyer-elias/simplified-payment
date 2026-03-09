@@ -1,27 +1,36 @@
 package com.eliasmeyer.sp.infrastructure.persistence.transferencia;
 
 import com.eliasmeyer.sp.core.domain.model.transferencia.TransferenciaStatus;
+import com.eliasmeyer.sp.infrastructure.persistence.carteira.CarteiraEntity;
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "TB_TRANSFERENCIA")
-class TransferenciaEntity {
+class TransferenciaEntity extends PanacheEntityBase {
 
 	@Id
 	@Column(name = "COD_TRANSFERENCIA", nullable = false, updatable = false)
 	private String id;
 
-	@Column(name = "COD_CARTEIRA_PAG", nullable = false)
-	private String carteiraIdPagador;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "COD_CARTEIRA_PAG", nullable = false)
+	private CarteiraEntity carteiraPagador;
 
-	@Column(name = "COD_CARTEIRA_REC", nullable = false)
-	private String carteiraIdRecebedor;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "COD_CARTEIRA_REC", nullable = false)
+	private CarteiraEntity carteiraRecebedor;
 
 	@Column(name = "VLR_TRANSACAO", scale = 4, precision = 19, nullable = false)
 	private BigDecimal valor;
@@ -44,20 +53,20 @@ class TransferenciaEntity {
 		this.id = id;
 	}
 
-	public String getCarteiraIdPagador() {
-		return carteiraIdPagador;
+	public CarteiraEntity getCarteiraPagador() {
+		return carteiraPagador;
 	}
 
-	public void setCarteiraIdPagador(String carteiraIdPagador) {
-		this.carteiraIdPagador = carteiraIdPagador;
+	public void setCarteiraPagador(CarteiraEntity carteiraPagador) {
+		this.carteiraPagador = carteiraPagador;
 	}
 
-	public String getCarteiraIdRecebedor() {
-		return carteiraIdRecebedor;
+	public CarteiraEntity getCarteiraRecebedor() {
+		return carteiraRecebedor;
 	}
 
-	public void setCarteiraIdRecebedor(String carteiraIdRecebedor) {
-		this.carteiraIdRecebedor = carteiraIdRecebedor;
+	public void setCarteiraRecebedor(CarteiraEntity carteiraRecebedor) {
+		this.carteiraRecebedor = carteiraRecebedor;
 	}
 
 	public BigDecimal getValor() {
@@ -90,5 +99,15 @@ class TransferenciaEntity {
 
 	public void setStatus(TransferenciaStatus status) {
 		this.status = status;
+	}
+
+	@PrePersist
+	void onCreate() {
+		criadoEm = LocalDateTime.now();
+	}
+
+	@PreUpdate
+	void onUpdate() {
+		atualizadoEm = LocalDateTime.now();
 	}
 }
