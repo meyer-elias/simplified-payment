@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - include:
+      file: 01-create-usuario.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: 02-create-carteira.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: 03-create-transferencia.yaml
+      relativeToChangelogFile: true

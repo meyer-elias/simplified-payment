@@ -2,7 +2,9 @@ package com.eliasmeyer.sp.infrastructure.persistence.carteira;
 
 import com.eliasmeyer.sp.core.domain.model.carteira.Carteira;
 import com.eliasmeyer.sp.core.domain.model.carteira.CarteiraReconstituicao;
+import jakarta.enterprise.context.ApplicationScoped;
 
+@ApplicationScoped
 public class CarteiraMapper {
 
 	public Carteira toDomain(CarteiraEntity entity) {

@@ -1,4 +1,4 @@
-package com.eliasmeyer.sp.core.domain.ports.in.transferencia;
+package com.eliasmeyer.sp.core.domain.ports.out.transferencia;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

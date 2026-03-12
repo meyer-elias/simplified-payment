@@ -1,24 +1,32 @@
 package com.eliasmeyer.sp.infrastructure.persistence.carteira;
 
 import com.eliasmeyer.sp.core.domain.model.carteira.TipoConta;
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "TB_CARTEIRA")
-public class CarteiraEntity {
+@Table(name = "TB_CARTEIRA", indexes = {
+	@Index(name = "IDX_CARTEIRA_COD_USUARIO", columnList = "COD_USUARIO")
+})
+public class CarteiraEntity extends PanacheEntityBase {
 
 	@Id
 	@Column(name = "COD_CARTEIRA", nullable = false, updatable = false)
 	private String id;
 
-	@JoinColumn(name = "COD_USUARIO", nullable = false, unique = true)
+	@Column(name = "COD_USUARIO", nullable = false, unique = true)
+	@JoinColumn(name = "COD_USUARIO",
+		foreignKey = @ForeignKey(name = "FK_CARTEIRA_USUARIO",
+			foreignKeyDefinition = "FOREIGN KEY (COD_USUARIO) REFERENCES TB_USUARIO(COD_USUARIO)"))
 	private String usuarioId;
 
 	@Column(name = "VLR_SALDO", nullable = false, scale = 4, precision = 19)
@@ -27,7 +35,7 @@ public class CarteiraEntity {
 	@Column(name = "VLR_SALDO_RESERVADO", nullable = false, scale = 4, precision = 19)
 	private BigDecimal saldoReservado;
 
-	@Column(name = "TIPO_CONTA", nullable = false)
+	@Column(name = "TP_CONTA", nullable = false, columnDefinition = "SMALLINT")
 	@Convert(converter = TipoContaConverter.class)
 	private TipoConta tipoConta;
 

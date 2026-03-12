@@ -85,7 +85,7 @@ class UsuarioFactoryTest {
 
 		Usuario usuario = UsuarioFactory.criar(cpf, nome, email, senha);
 
-		assertNotNull(usuario.getUsuarioId());
+		assertNotNull(usuario.getId());
 	}
 
 	@Test
@@ -98,6 +98,6 @@ class UsuarioFactoryTest {
 
 		Usuario usuario = UsuarioFactory.criar(cnpj, nome, email, senha);
 
-		assertNotNull(usuario.getUsuarioId());
+		assertNotNull(usuario.getId());
 	}
 }

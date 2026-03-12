@@ -22,7 +22,9 @@ module simplified.payment.core {
 	exports com.eliasmeyer.sp.core.domain.model.transferencia.exception;
 	exports com.eliasmeyer.sp.core.domain.model.carteira.exception;
 	exports com.eliasmeyer.sp.core.domain.ports.out.carteira;
+	exports com.eliasmeyer.sp.core.application.shared.logging;
 
 	// Módulos requeridos pelo core
 	requires java.base;
+	requires java.desktop;
 }

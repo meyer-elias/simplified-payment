@@ -23,5 +23,19 @@ public record Email(String address) {
 			throw new IllegalArgumentException("Email inválido: " + address);
 		}
 	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (!(o instanceof Email(String address1))) {
+			return false;
+		}
+
+		return address.equals(address1);
+	}
+
+	@Override
+	public int hashCode() {
+		return address.hashCode();
+	}
 }
 

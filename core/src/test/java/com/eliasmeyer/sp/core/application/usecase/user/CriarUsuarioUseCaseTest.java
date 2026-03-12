@@ -15,7 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.eliasmeyer.sp.core.application.exception.RegistradorUsuarioIndisponivelException;
-import com.eliasmeyer.sp.core.application.ports.TransactionManager;
+import com.eliasmeyer.sp.core.application.ports.AppTransactionManager;
 import com.eliasmeyer.sp.core.domain.model.usuario.Documento;
 import com.eliasmeyer.sp.core.domain.model.usuario.Email;
 import com.eliasmeyer.sp.core.domain.model.usuario.Usuario;
@@ -36,7 +36,7 @@ class CriarUsuarioUseCaseTest {
 	private UsuarioOutputPort usuarioOutputPort;
 	private CarteiraOutputPort carteiraOutputPort;
 	private PasswordEncoder passwordEncoder;
-	private TransactionManager transactionManager;
+	private AppTransactionManager appTransactionManager;
 
 	private CriarUsuarioUseCase useCase;
 
@@ -44,12 +44,12 @@ class CriarUsuarioUseCaseTest {
 	void setUp() {
 		usuarioOutputPort = mock(UsuarioOutputPort.class);
 		passwordEncoder = mock(PasswordEncoder.class);
-		transactionManager = mock(TransactionManager.class);
+		appTransactionManager = mock(AppTransactionManager.class);
 		carteiraOutputPort = mock(CarteiraOutputPort.class);
 		doInvocationTransactionHelperMethod();
 
 		useCase = new CriarUsuarioUseCase(usuarioOutputPort, carteiraOutputPort, passwordEncoder,
-			transactionManager);
+			appTransactionManager);
 
 		when(passwordEncoder.encode(anyString())).thenReturn("senhaHasheada123");
 	}
@@ -68,7 +68,7 @@ class CriarUsuarioUseCaseTest {
 			Runnable action = invocation.getArgument(0);
 			action.run();
 			return null;
-		}).when(transactionManager).execute(any(Runnable.class));
+		}).when(appTransactionManager).execute(any(Runnable.class));
 	}
 
 	@Nested
@@ -87,7 +87,7 @@ class CriarUsuarioUseCaseTest {
 
 			verify(usuarioOutputPort, times(1)).salvar(any(Usuario.class));
 			verify(passwordEncoder, times(1)).encode(command.senha());
-			verify(transactionManager, times(1)).execute(any(Runnable.class));
+			verify(appTransactionManager, times(1)).execute(any(Runnable.class));
 		}
 
 		@Test
@@ -102,7 +102,7 @@ class CriarUsuarioUseCaseTest {
 			assertDoesNotThrow(() -> useCase.execute(command));
 
 			verify(usuarioOutputPort, times(1)).salvar(any(Usuario.class));
-			verify(transactionManager, times(1)).execute(any(Runnable.class));
+			verify(appTransactionManager, times(1)).execute(any(Runnable.class));
 		}
 
 		@Test
@@ -118,7 +118,7 @@ class CriarUsuarioUseCaseTest {
 			assertDoesNotThrow(() -> useCase.execute(command));
 
 			verify(usuarioOutputPort, times(1)).salvar(any(Usuario.class));
-			verify(transactionManager, times(1)).execute(any(Runnable.class));
+			verify(appTransactionManager, times(1)).execute(any(Runnable.class));
 		}
 	}
 
@@ -138,7 +138,7 @@ class CriarUsuarioUseCaseTest {
 				.hasMessageContaining("Documento inválido", exception.getMessage());
 
 			verify(usuarioOutputPort, never()).salvar(any());
-			verify(transactionManager, never()).execute(any(Runnable.class));
+			verify(appTransactionManager, never()).execute(any(Runnable.class));
 		}
 
 		@Test
@@ -153,7 +153,7 @@ class CriarUsuarioUseCaseTest {
 				.hasMessageContaining("Email inválido", exception.getMessage());
 
 			verify(usuarioOutputPort, never()).salvar(any());
-			verify(transactionManager, never()).execute(any(Runnable.class));
+			verify(appTransactionManager, never()).execute(any(Runnable.class));
 		}
 
 		@Test
@@ -167,7 +167,7 @@ class CriarUsuarioUseCaseTest {
 			assertEquals("Nome deve ter pelo menos 3 caracteres", exception.getMessage());
 
 			verify(usuarioOutputPort, never()).salvar(any());
-			verify(transactionManager, never()).execute(any(Runnable.class));
+			verify(appTransactionManager, never()).execute(any(Runnable.class));
 		}
 	}
 
@@ -190,7 +190,7 @@ class CriarUsuarioUseCaseTest {
 
 			verify(usuarioOutputPort, never()).buscarPorEmail(any());
 			verify(usuarioOutputPort, never()).salvar(any());
-			verify(transactionManager, never()).execute(any(Runnable.class));
+			verify(appTransactionManager, never()).execute(any(Runnable.class));
 		}
 
 		@Test
@@ -209,7 +209,7 @@ class CriarUsuarioUseCaseTest {
 			assertEquals("Email já cadastrado no sistema", exception.getMessage());
 
 			verify(usuarioOutputPort, never()).salvar(any());
-			verify(transactionManager, never()).execute(any(Runnable.class));
+			verify(appTransactionManager, never()).execute(any(Runnable.class));
 		}
 	}
 
@@ -231,7 +231,7 @@ class CriarUsuarioUseCaseTest {
 			Exception exception = assertThrows(RegistradorUsuarioIndisponivelException.class,
 				() -> useCase.execute(command));
 			assertInstanceOf(RegistradorUsuarioIndisponivelException.class, exception);
-			verify(transactionManager, times(1)).execute(any(Runnable.class));
+			verify(appTransactionManager, times(1)).execute(any(Runnable.class));
 		}
 
 		@Test
@@ -247,7 +247,7 @@ class CriarUsuarioUseCaseTest {
 
 			assertThrows(RegistradorUsuarioIndisponivelException.class,
 				() -> useCase.execute(command));
-			verify(transactionManager, times(1)).execute(any(Runnable.class));
+			verify(appTransactionManager, times(1)).execute(any(Runnable.class));
 		}
 	}
 }

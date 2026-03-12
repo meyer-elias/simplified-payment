@@ -15,7 +15,7 @@ public class TransferenciaRepository implements TransferenciaOutputPort {
 	private final TransferenciaMapper transferenciaMapper;
 
 	@Inject
-	TransferenciaRepository(TransferenciaJpaAdapter transferenciaJpaAdapter,
+	public TransferenciaRepository(TransferenciaJpaAdapter transferenciaJpaAdapter,
 		TransferenciaMapper transferenciaMapper) {
 		this.transferenciaJpaAdapter = transferenciaJpaAdapter;
 		this.transferenciaMapper = transferenciaMapper;

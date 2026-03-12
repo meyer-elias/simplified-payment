@@ -4,7 +4,7 @@ import com.eliasmeyer.sp.core.application.exception.AutorizadorIndisponivelExcep
 import com.eliasmeyer.sp.core.application.exception.TransferenciaIndisponivelException;
 import com.eliasmeyer.sp.core.application.exception.TransferenciaNaoAutorizadaException;
 import com.eliasmeyer.sp.core.application.exception.TransferenciaRejeitadaException;
-import com.eliasmeyer.sp.core.application.ports.TransactionManager;
+import com.eliasmeyer.sp.core.application.ports.AppTransactionManager;
 import com.eliasmeyer.sp.core.domain.model.carteira.Carteira;
 import com.eliasmeyer.sp.core.domain.model.carteira.CarteiraId;
 import com.eliasmeyer.sp.core.domain.model.carteira.Dinheiro;
@@ -42,23 +42,23 @@ public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPor
 
 	public EfetuarTransferenciaUseCase(
 		TransferenciaAutorizadorOutputPort transferenciaAutorizadorOutputPort,
-		TransactionManager transactionManager, DomainEventDispatcher domainEventDispatcher,
+		AppTransactionManager appTransactionManager, DomainEventDispatcher domainEventDispatcher,
 		CarteiraOutputPort carteiraOutputPort, TransferenciaOutputPort transferenciaOutputPort) {
 		this.domainEventDispatcher = domainEventDispatcher;
 		this.carteiraOutputPort = carteiraOutputPort;
 
-		this.cancelador = new Cancelador(transactionManager, carteiraOutputPort,
+		this.cancelador = new Cancelador(appTransactionManager, carteiraOutputPort,
 			transferenciaOutputPort);
 
 		this.autorizador = new Autorizador(transferenciaAutorizadorOutputPort);
 
 		this.reservador = new Reservador(transferenciaOutputPort, carteiraOutputPort,
-			transactionManager);
+			appTransactionManager);
 
 		this.efetivador = new Efetivador(transferenciaOutputPort, carteiraOutputPort,
-			transactionManager);
+			appTransactionManager);
 
-		this.falhador = new Falhador(transactionManager, carteiraOutputPort,
+		this.falhador = new Falhador(appTransactionManager, carteiraOutputPort,
 			transferenciaOutputPort);
 	}
 

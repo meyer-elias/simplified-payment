@@ -14,7 +14,6 @@ import java.util.Objects;
  */
 public abstract class Usuario extends Entity<UsuarioId> {
 
-	protected final UsuarioId usuarioId;
 	protected final Documento documento;
 	protected final Nome nome;
 	protected final Email email;
@@ -30,15 +29,24 @@ public abstract class Usuario extends Entity<UsuarioId> {
 	 * @param senha     senha hasheada
 	 * @param tipo      tipo de usuário (COMUM ou LOJISTA)
 	 */
-	protected Usuario(Documento documento, Nome nome, Email email, String senha, TipoUsuario tipo) {
-		super(new UsuarioId());
-
-		this.usuarioId = new UsuarioId();
+	private Usuario(UsuarioId usuarioId, Documento documento, Nome nome, Email email,
+		String senha, TipoUsuario tipo) {
+		super(usuarioId);
 		this.documento = Objects.requireNonNull(documento, "Documento não pode ser nulo");
 		this.nome = Objects.requireNonNull(nome, "Nome não pode ser nulo");
 		this.email = Objects.requireNonNull(email, "Email não pode ser nulo");
-		this.senha = Objects.requireNonNull(senha, "Senha não pode ser nula");
+		this.senha = senha;
 		this.tipo = Objects.requireNonNull(tipo, "Tipo de usuário não pode ser nulo");
+	}
+
+	protected Usuario(Documento documento, Nome nome, Email email, String senha,
+		TipoUsuario tipo) {
+		this(new UsuarioId(), documento, nome, email, senha, tipo);
+	}
+
+	protected Usuario(UsuarioId usuarioId, Documento documento, Nome nome, Email email,
+		TipoUsuario tipo) {
+		this(usuarioId, documento, nome, email, null, tipo);
 	}
 
 	public Documento getDocumento() {
@@ -59,10 +67,6 @@ public abstract class Usuario extends Entity<UsuarioId> {
 
 	public TipoUsuario getTipo() {
 		return tipo;
-	}
-
-	public UsuarioId getUsuarioId() {
-		return usuarioId;
 	}
 
 	/**
@@ -87,19 +91,20 @@ public abstract class Usuario extends Entity<UsuarioId> {
 		if (!super.equals(o)) {
 			return false;
 		}
-		return usuarioId.equals(usuario.usuarioId);
+
+		return documento.equals(usuario.documento);
 	}
 
 	@Override
 	public int hashCode() {
 		int result = super.hashCode();
-		result = 31 * result + usuarioId.hashCode();
+		result = 31 * result + documento.hashCode();
 		return result;
 	}
 
 	@Override
 	public String toString() {
 		return String.format("Usuario[id=%s, documento=%s, nome=%s, tipo=%s]",
-			usuarioId, documento, nome, tipo);
+			getId(), documento, nome, tipo);
 	}
 }

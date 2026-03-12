@@ -1,0 +1,93 @@
+databaseChangeLog:
+  - changeSet:
+      id: d7eb40a0-0dd2-4d5b-8537-125421099e4b
+      author: elias-meyer
+      preConditions:
+        - onFail: MARK_RAN
+          onError: HALT
+          and:
+            - not:
+                - tableExists:
+                    tableName: TB_TRANSFERENCIA
+            - tableExists:
+                tableName: TB_CARTEIRA
+      changes:
+        - createTable:
+            tableName: TB_TRANSFERENCIA
+            columns:
+              - column:
+                  name: COD_TRANSFERENCIA
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: COD_CARTEIRA_PAG
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: COD_CARTEIRA_REC
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: VLR_TRANSACAO
+                  type: NUMERIC(19,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: TS_CRIADO_EM
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+                    updatable: false
+              - column:
+                  name: TS_ATUALIZADO_EM
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: STATUS
+                  type: SMALLINT
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: TB_TRANSFERENCIA
+            baseColumnNames: COD_CARTEIRA_PAG
+            referencedTableName: TB_CARTEIRA
+            referencedColumnNames: COD_CARTEIRA
+            constraintName: FK_TRANSFERENCIA_CARTEIRA_PAG
+        - addForeignKeyConstraint:
+            baseTableName: TB_TRANSFERENCIA
+            baseColumnNames: COD_CARTEIRA_REC
+            referencedTableName: TB_CARTEIRA
+            referencedColumnNames: COD_CARTEIRA
+            constraintName: FK_TRANSFERENCIA_CARTEIRA_REC
+        - createIndex:
+            tableName: TB_TRANSFERENCIA
+            indexName: IDX_TRANSFERENCIA_COD_CARTEIRA_PAG
+            columns:
+              - column:
+                  name: COD_CARTEIRA_PAG
+        - createIndex:
+            tableName: TB_TRANSFERENCIA
+            indexName: IDX_TRANSFERENCIA_COD_CARTEIRA_REC
+            columns:
+              - column:
+                  name: COD_CARTEIRA_REC
+      rollback:
+        - dropForeignKeyConstraint:
+            constraintName: FK_TRANSFERENCIA_CARTEIRA_PAG
+            baseTableName: TB_TRANSFERENCIA
+        - dropForeignKeyConstraint:
+            constraintName: FK_TRANSFERENCIA_CARTEIRA_REC
+            baseTableName: TB_TRANSFERENCIA
+        - dropIndex:
+            indexName: IDX_TRANSFERENCIA_COD_CARTEIRA_PAG
+            tableName: TB_TRANSFERENCIA
+        - dropIndex:
+            indexName: IDX_TRANSFERENCIA_COD_CARTEIRA_REC
+            tableName: TB_TRANSFERENCIA
+        - dropTable:
+            tableName: TB_TRANSFERENCIA

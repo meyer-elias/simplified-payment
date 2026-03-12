@@ -1,7 +1,7 @@
 package com.eliasmeyer.sp.core.application.usecase.user;
 
 import com.eliasmeyer.sp.core.application.exception.RegistradorUsuarioIndisponivelException;
-import com.eliasmeyer.sp.core.application.ports.TransactionManager;
+import com.eliasmeyer.sp.core.application.ports.AppTransactionManager;
 import com.eliasmeyer.sp.core.domain.model.carteira.Carteira;
 import com.eliasmeyer.sp.core.domain.model.carteira.CarteiraFactory;
 import com.eliasmeyer.sp.core.domain.model.carteira.Dinheiro;
@@ -32,16 +32,16 @@ public class CriarUsuarioUseCase implements CriarUsuarioInputPort {
 
 	private final PasswordEncoder passwordEncoder;
 
-	private final TransactionManager transactionManager;
+	private final AppTransactionManager appTransactionManager;
 
 	public CriarUsuarioUseCase(UsuarioOutputPort usuarioOutputPort,
 		CarteiraOutputPort carteiraOutputPort,
 		PasswordEncoder passwordEncoder,
-		TransactionManager transactionManager) {
+		AppTransactionManager appTransactionManager) {
 		this.usuarioOutputPort = usuarioOutputPort;
 		this.carteiraOutputPort = carteiraOutputPort;
 		this.passwordEncoder = passwordEncoder;
-		this.transactionManager = transactionManager;
+		this.appTransactionManager = appTransactionManager;
 	}
 
 	@Override
@@ -70,7 +70,7 @@ public class CriarUsuarioUseCase implements CriarUsuarioInputPort {
 		Carteira carteira = CarteiraFactory.criar(novoUsuario,
 			new Dinheiro(comando.valorInicial()));
 
-		transactionManager.execute(() -> {
+		appTransactionManager.execute(() -> {
 			try {
 				// Persiste
 				usuarioOutputPort.salvar(novoUsuario);

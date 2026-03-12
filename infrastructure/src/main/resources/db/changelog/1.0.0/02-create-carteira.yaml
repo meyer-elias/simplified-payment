@@ -1,0 +1,70 @@
+databaseChangeLog:
+  - changeSet:
+      id: 587495b6-8d8f-488e-9747-ed83360ec2f5
+      author: elias-meyer
+      preConditions:
+        - onFail: MARK_RAN
+          onError: HALT
+          and:
+            - not:
+                - tableExists:
+                    tableName: TB_CARTEIRA
+            - tableExists:
+                tableName: TB_USUARIO
+      changes:
+        - createTable:
+            tableName: TB_CARTEIRA
+            columns:
+              - column:
+                  name: COD_CARTEIRA
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: COD_USUARIO
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: VLR_SALDO
+                  type: NUMERIC(19,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: VLR_SALDO_RESERVADO
+                  type: NUMERIC(19,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: TP_CONTA
+                  type: SMALLINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: TS_ULTIMA_ATUALIZACAO
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: TB_CARTEIRA
+            baseColumnNames: COD_USUARIO
+            referencedTableName: TB_USUARIO
+            referencedColumnNames: COD_USUARIO
+            constraintName: FK_CARTEIRA_USUARIO
+        - createIndex:
+            tableName: TB_CARTEIRA
+            indexName: IDX_CARTEIRA_COD_USUARIO
+            columns:
+              - column:
+                  name: COD_USUARIO
+      rollback:
+        - dropForeignKeyConstraint:
+            constraintName: FK_CARTEIRA_USUARIO
+            baseTableName: TB_CARTEIRA
+        - dropIndex:
+            indexName: IDX_CARTEIRA_COD_USUARIO
+            tableName: TB_CARTEIRA
+        - dropTable:
+            tableName: TB_CARTEIRA

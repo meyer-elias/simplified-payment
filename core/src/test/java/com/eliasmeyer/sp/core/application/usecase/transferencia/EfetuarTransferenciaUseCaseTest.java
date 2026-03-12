@@ -17,7 +17,7 @@ import com.eliasmeyer.sp.core.application.exception.AutorizadorIndisponivelExcep
 import com.eliasmeyer.sp.core.application.exception.TransferenciaIndisponivelException;
 import com.eliasmeyer.sp.core.application.exception.TransferenciaNaoAutorizadaException;
 import com.eliasmeyer.sp.core.application.exception.TransferenciaRejeitadaException;
-import com.eliasmeyer.sp.core.application.ports.TransactionManager;
+import com.eliasmeyer.sp.core.application.ports.AppTransactionManager;
 import com.eliasmeyer.sp.core.domain.model.carteira.Carteira;
 import com.eliasmeyer.sp.core.domain.model.carteira.CarteiraComum;
 import com.eliasmeyer.sp.core.domain.model.carteira.CarteiraFactory;
@@ -53,7 +53,7 @@ class EfetuarTransferenciaUseCaseTest {
 	private TransferenciaOutputPort transferenciaOutputPort;
 	private CarteiraOutputPort carteiraOutputPort;
 	private DomainEventDispatcher domainEventDispatcher;
-	private TransactionManager transactionManager;
+	private AppTransactionManager appTransactionManager;
 	private EfetuarTransferenciaUseCase useCase;
 	private Carteira pagador;
 	private Carteira recebedor;
@@ -64,15 +64,15 @@ class EfetuarTransferenciaUseCaseTest {
 		transferenciaOutputPort = mock(TransferenciaOutputPort.class);
 		carteiraOutputPort = mock(CarteiraOutputPort.class);
 		domainEventDispatcher = mock(DomainEventDispatcher.class);
-		transactionManager = mock(TransactionManager.class);
+		appTransactionManager = mock(AppTransactionManager.class);
 		doAnswer(invocation -> {
 			Runnable action = invocation.getArgument(0);
 			action.run();
 			return null;
-		}).when(transactionManager).execute(any(Runnable.class));
+		}).when(appTransactionManager).execute(any(Runnable.class));
 		useCase = new EfetuarTransferenciaUseCase(
 			transferenciaAutorizadorOutputPort,
-			transactionManager,
+			appTransactionManager,
 			domainEventDispatcher,
 			carteiraOutputPort,
 			transferenciaOutputPort
@@ -132,7 +132,7 @@ class EfetuarTransferenciaUseCaseTest {
 			verify(carteiraOutputPort, times(2)).salvar(pagador);
 			verify(carteiraOutputPort, times(1)).salvar(recebedor);
 			verify(domainEventDispatcher, times(1)).dispatch(any());
-			verify(transactionManager, times(2)).execute(any(Runnable.class));
+			verify(appTransactionManager, times(2)).execute(any(Runnable.class));
 		}
 
 		@Test
@@ -147,7 +147,7 @@ class EfetuarTransferenciaUseCaseTest {
 			useCase.execute(criarCommand(pagador.getId(), recebedor.getId(), "100.00"));
 
 			verify(domainEventDispatcher, times(1)).dispatch(any());
-			verify(transactionManager, times(2)).execute(any(Runnable.class));
+			verify(appTransactionManager, times(2)).execute(any(Runnable.class));
 		}
 	}
 
@@ -231,7 +231,7 @@ class EfetuarTransferenciaUseCaseTest {
 			assertTrue(
 				capturedEvents.stream().anyMatch(TransferenciaCanceladaEvento.class::isInstance));
 
-			verify(transactionManager, times(2)).execute(any(Runnable.class));
+			verify(appTransactionManager, times(2)).execute(any(Runnable.class));
 		}
 
 		@Test
@@ -277,7 +277,7 @@ class EfetuarTransferenciaUseCaseTest {
 			assertTrue(
 				capturedEvents.stream().anyMatch(TransferenciaCanceladaEvento.class::isInstance));
 
-			verify(transactionManager, times(2)).execute(any(Runnable.class));
+			verify(appTransactionManager, times(2)).execute(any(Runnable.class));
 		}
 	}
 
@@ -437,7 +437,7 @@ class EfetuarTransferenciaUseCaseTest {
 				() -> useCase.execute(command));
 
 			verify(domainEventDispatcher, never()).dispatch(any());
-			verify(transactionManager, never()).execute(any(Runnable.class));
+			verify(appTransactionManager, never()).execute(any(Runnable.class));
 		}
 
 		@Test
@@ -531,7 +531,7 @@ class EfetuarTransferenciaUseCaseTest {
 
 			verify(transferenciaOutputPort, never()).salvar(any());
 			verify(domainEventDispatcher, never()).dispatch(any());
-			verify(transactionManager, never()).execute(any(Runnable.class));
+			verify(appTransactionManager, never()).execute(any(Runnable.class));
 		}
 	}
 
@@ -610,7 +610,7 @@ class EfetuarTransferenciaUseCaseTest {
 			assertThrows(RuntimeException.class, () -> useCase.execute(command));
 
 			verify(domainEventDispatcher, times(1)).dispatch(any());
-			verify(transactionManager, times(2)).execute(any(Runnable.class));
+			verify(appTransactionManager, times(2)).execute(any(Runnable.class));
 		}
 
 		@Test

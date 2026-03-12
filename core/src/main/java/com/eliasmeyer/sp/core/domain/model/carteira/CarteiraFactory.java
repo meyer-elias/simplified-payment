@@ -18,10 +18,8 @@ public class CarteiraFactory {
 	 */
 	public static Carteira criar(Usuario usuario, Dinheiro saldoInicialDisponivel) {
 		return switch (usuario) {
-			case UsuarioComum comum ->
-				new CarteiraComum(comum.getUsuarioId(), saldoInicialDisponivel);
-			case Lojista lojista ->
-				new CarteiraLojista(lojista.getUsuarioId(), saldoInicialDisponivel);
+			case UsuarioComum comum -> new CarteiraComum(comum.getId(), saldoInicialDisponivel);
+			case Lojista lojista -> new CarteiraLojista(lojista.getId(), saldoInicialDisponivel);
 			default -> throw new IllegalArgumentException(
 				"Tipo de usuário inválido: " + usuario.getClass().getSimpleName());
 		};

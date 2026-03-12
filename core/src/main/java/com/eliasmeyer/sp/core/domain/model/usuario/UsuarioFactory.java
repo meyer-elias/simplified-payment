@@ -28,5 +28,26 @@ public class UsuarioFactory {
 				"Tipo de documento inválido: " + documento.getClass().getSimpleName());
 		};
 	}
+
+
+	/**
+	 * Método utilizado para reconstituir a entidade da base de dados para o mapper da
+	 * infrastructure. Essa classe não deve ser utilizada diretamente no dominio, apenas no mapper
+	 * da infra.
+	 *
+	 * @param usuarioId
+	 * @param documento
+	 * @param nome
+	 * @param email
+	 * @param tipo
+	 * @return
+	 */
+	public static Usuario criar(
+		UsuarioId usuarioId, Documento documento, Nome nome, Email email, TipoUsuario tipo) {
+		return switch (tipo) {
+			case COMUM -> new UsuarioComum(usuarioId, documento, nome, email);
+			case LOJISTA -> new Lojista(usuarioId, documento, nome, email);
+		};
+	}
 }
 

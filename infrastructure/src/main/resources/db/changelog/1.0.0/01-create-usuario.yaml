@@ -1,0 +1,75 @@
+databaseChangeLog:
+  - changeSet:
+      id: d8ac641d-a38b-49b5-82bf-fd120c48c00f
+      author: elias-meyer
+      preconditions:
+        - onFail: MARK_RAN
+          not:
+            - tableExists:
+                tableName: TB_USUARIO
+      changes:
+        - createTable:
+            tableName: TB_USUARIO
+            columns:
+              - column:
+                  name: COD_USUARIO
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: DOCUMENTO
+                  type: VARCHAR(14)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: NOME
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: EMAIL
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: PASSWORD
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: TP_USUARIO
+                  type: SMALLINT
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            columnNames: EMAIL
+            constraintName: UN_USUARIO_EMAIL
+            tableName: TB_USUARIO
+        - addUniqueConstraint:
+            columnNames: DOCUMENTO
+            constraintName: UN_USUARIO_DOCUMENTO
+            tableName: TB_USUARIO
+        - createIndex:
+            tableName: TB_USUARIO
+            indexName: IDX_USUARIO_EMAIL
+            columns:
+              - column:
+                  name: EMAIL
+        - createIndex:
+            tableName: TB_USUARIO
+            indexName: IDX_USUARIO_DOCUMENTO
+            columns:
+              - column:
+                  name: DOCUMENTO
+      rollback:
+        - dropIndex:
+            indexName: IDX_USUARIO_EMAIL
+            tableName: TB_USUARIO
+        - dropIndex:
+            indexName: IDX_USUARIO_DOCUMENTO
+            tableName: TB_USUARIO
+        - dropTable:
+            tableName: TB_USUARIO

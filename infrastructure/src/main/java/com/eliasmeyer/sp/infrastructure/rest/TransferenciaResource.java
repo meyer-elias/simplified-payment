@@ -4,7 +4,7 @@ import com.eliasmeyer.sp.core.domain.ports.in.transferencia.EfetuarTransferencia
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.EfetuarTransferenciaInputPort;
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.ListarTransferenciaInputPort;
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.ListarTransferenciaPaginadaCommand;
-import com.eliasmeyer.sp.core.domain.ports.in.transferencia.TransferenciaOutput;
+import com.eliasmeyer.sp.core.domain.ports.out.transferencia.TransferenciaOutput;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;

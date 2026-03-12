@@ -7,7 +7,7 @@ public class TransferenciaId extends Id {
 	TransferenciaId() {
 	}
 
-	TransferenciaId(String uuidString) {
+	public TransferenciaId(String uuidString) {
 		super(uuidString);
 	}
 }

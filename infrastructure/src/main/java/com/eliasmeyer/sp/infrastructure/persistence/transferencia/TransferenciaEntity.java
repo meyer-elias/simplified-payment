@@ -7,7 +7,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
@@ -17,7 +19,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "TB_TRANSFERENCIA")
+@Table(name = "TB_TRANSFERENCIA", indexes = {
+	@Index(name = "IDX_TRANSFERENCIA_COD_CARTEIRA_PAG", columnList = "COD_CARTEIRA_PAG"),
+	@Index(name = "IDX_TRANSFERENCIA_COD_CARTEIRA_REC", columnList = "COD_CARTEIRA_REC")
+})
 class TransferenciaEntity extends PanacheEntityBase {
 
 	@Id
@@ -25,11 +30,13 @@ class TransferenciaEntity extends PanacheEntityBase {
 	private String id;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "COD_CARTEIRA_PAG", nullable = false)
+	@JoinColumn(name = "COD_CARTEIRA_PAG", nullable = false, foreignKey = @ForeignKey(name = "FK_TRANSFERENCIA_CARTEIRA_PAG",
+		foreignKeyDefinition = "FOREIGN KEY (COD_CARTEIRA_PAG) REFERENCES TB_CARTEIRA(COD_CARTEIRA)"))
 	private CarteiraEntity carteiraPagador;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "COD_CARTEIRA_REC", nullable = false)
+	@JoinColumn(name = "COD_CARTEIRA_REC", nullable = false, foreignKey = @ForeignKey(name = "FK_TRANSFERENCIA_CARTEIRA_PAG",
+		foreignKeyDefinition = "FOREIGN KEY (COD_CARTEIRA_REC) REFERENCES TB_CARTEIRA(COD_CARTEIRA)"))
 	private CarteiraEntity carteiraRecebedor;
 
 	@Column(name = "VLR_TRANSACAO", scale = 4, precision = 19, nullable = false)
@@ -41,7 +48,7 @@ class TransferenciaEntity extends PanacheEntityBase {
 	@Column(name = "TS_ATUALIZADO_EM", nullable = false)
 	private LocalDateTime atualizadoEm;
 
-	@Column(name = "STATUS", nullable = false)
+	@Column(name = "STATUS", nullable = false, columnDefinition = "SMALLINT")
 	@Convert(converter = TransferenciaStatusConverter.class)
 	private TransferenciaStatus status;
 

@@ -1,7 +1,7 @@
 package com.eliasmeyer.sp.core.application.usecase.transferencia;
 
 import com.eliasmeyer.sp.core.application.exception.TransferenciaRejeitadaException;
-import com.eliasmeyer.sp.core.application.ports.TransactionManager;
+import com.eliasmeyer.sp.core.application.ports.AppTransactionManager;
 import com.eliasmeyer.sp.core.application.shared.ApplicationException;
 import com.eliasmeyer.sp.core.domain.model.carteira.Carteira;
 import com.eliasmeyer.sp.core.domain.model.carteira.exception.CarteiraException;
@@ -16,17 +16,17 @@ class Reservador {
 
 	private final CarteiraOutputPort carteiraOutputPort;
 
-	private final TransactionManager transactionManager;
+	private final AppTransactionManager appTransactionManager;
 
 	Reservador(TransferenciaOutputPort transferenciaOutputPort,
-		CarteiraOutputPort carteiraOutputPort, TransactionManager transactionManager) {
+		CarteiraOutputPort carteiraOutputPort, AppTransactionManager appTransactionManager) {
 		this.transferenciaOutputPort = transferenciaOutputPort;
 		this.carteiraOutputPort = carteiraOutputPort;
-		this.transactionManager = transactionManager;
+		this.appTransactionManager = appTransactionManager;
 	}
 
 	void executar(Transferencia transferencia) {
-		transactionManager.execute(() -> reservar(transferencia));
+		appTransactionManager.execute(() -> reservar(transferencia));
 	}
 
 	private void reservar(Transferencia transferencia) {

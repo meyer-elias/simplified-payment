@@ -54,6 +54,11 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <dependency>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>quarkus-bootstrap-bom-test</artifactId>
+        <version>${quarkus.platform.version}</version>
+      </dependency>
       <!-- JUnit 5 (Jupiter) -->
       <dependency>
         <groupId>org.junit.jupiter</groupId>

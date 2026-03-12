@@ -1,6 +1,6 @@
 package com.eliasmeyer.sp.core.application.usecase.transferencia;
 
-import com.eliasmeyer.sp.core.application.ports.TransactionManager;
+import com.eliasmeyer.sp.core.application.ports.AppTransactionManager;
 import com.eliasmeyer.sp.core.domain.model.carteira.Carteira;
 import com.eliasmeyer.sp.core.domain.model.transferencia.Transferencia;
 import com.eliasmeyer.sp.core.domain.ports.out.carteira.CarteiraOutputPort;
@@ -12,18 +12,18 @@ class Efetivador {
 
 	private final CarteiraOutputPort carteiraOutputPort;
 
-	private final TransactionManager transactionManager;
+	private final AppTransactionManager appTransactionManager;
 
 	Efetivador(TransferenciaOutputPort transferenciaOutputPort,
 		CarteiraOutputPort carteiraOutputPort,
-		TransactionManager transactionManager) {
+		AppTransactionManager appTransactionManager) {
 		this.transferenciaOutputPort = transferenciaOutputPort;
 		this.carteiraOutputPort = carteiraOutputPort;
-		this.transactionManager = transactionManager;
+		this.appTransactionManager = appTransactionManager;
 	}
 
 	void executar(Transferencia transferencia) {
-		transactionManager.execute(() -> efetivar(transferencia));
+		appTransactionManager.execute(() -> efetivar(transferencia));
 	}
 
 	private void efetivar(Transferencia transferencia) {

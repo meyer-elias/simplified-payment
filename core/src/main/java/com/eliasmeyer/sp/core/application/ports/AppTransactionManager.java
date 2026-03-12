@@ -16,7 +16,7 @@ package com.eliasmeyer.sp.core.application.ports;
  * transação devem usar mecanismos externos (ex: retornar via parâmetro por referência ou
  * reestruturar a lógica para não depender de retorno da transação).
  */
-public interface TransactionManager {
+public interface AppTransactionManager {
 
 	/**
 	 * Executa {@code action} dentro de uma transação e retorna o resultado. Se {@code action}

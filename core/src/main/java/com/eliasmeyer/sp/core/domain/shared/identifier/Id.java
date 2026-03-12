@@ -32,7 +32,7 @@ public class Id extends GenericIdentifier<UUID> {
 	 *
 	 * @param uuidString representação string do UUID
 	 */
-	public Id(String uuidString) {
+	protected Id(String uuidString) {
 		super(UUID.fromString(uuidString));
 	}
 

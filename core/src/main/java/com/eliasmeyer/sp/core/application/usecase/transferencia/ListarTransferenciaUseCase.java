@@ -4,7 +4,7 @@ import com.eliasmeyer.sp.core.domain.model.carteira.CarteiraId;
 import com.eliasmeyer.sp.core.domain.model.transferencia.Transferencia;
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.ListarTransferenciaInputPort;
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.ListarTransferenciaPaginadaCommand;
-import com.eliasmeyer.sp.core.domain.ports.in.transferencia.TransferenciaOutput;
+import com.eliasmeyer.sp.core.domain.ports.out.transferencia.TransferenciaOutput;
 import com.eliasmeyer.sp.core.domain.ports.out.transferencia.TransferenciaOutputPort;
 import java.util.List;
 

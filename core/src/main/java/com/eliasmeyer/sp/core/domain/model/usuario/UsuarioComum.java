@@ -10,4 +10,8 @@ public class UsuarioComum extends Usuario {
 	UsuarioComum(Cpf cpf, Nome nome, Email email, String senha) {
 		super(cpf, nome, email, senha, TipoUsuario.COMUM);
 	}
+
+	UsuarioComum(UsuarioId usuarioId, Documento documento, Nome nome, Email email) {
+		super(usuarioId, documento, nome, email, TipoUsuario.COMUM);
+	}
 }
