@@ -1,4 +1,6 @@
 # Environment variables
+
+**/logs
 .env
 .env.local
 .env.*.local
