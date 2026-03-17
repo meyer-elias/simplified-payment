@@ -17,12 +17,12 @@ module simplified.payment.core {
 	exports com.eliasmeyer.sp.core.application.exception;
 	exports com.eliasmeyer.sp.core.application.shared;
 	exports com.eliasmeyer.sp.core.application.usecase.transferencia;
-	exports com.eliasmeyer.sp.core.application.usecase.transferencia.handler;
 	exports com.eliasmeyer.sp.core.application.usecase.user;
 	exports com.eliasmeyer.sp.core.domain.model.transferencia.exception;
 	exports com.eliasmeyer.sp.core.domain.model.carteira.exception;
 	exports com.eliasmeyer.sp.core.domain.ports.out.carteira;
 	exports com.eliasmeyer.sp.core.application.shared.logging;
+	exports com.eliasmeyer.sp.core.application.ports.out;
 
 	// Módulos requeridos pelo core
 	requires java.base;

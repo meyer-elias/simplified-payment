@@ -5,7 +5,6 @@ import com.eliasmeyer.sp.core.domain.model.carteira.Dinheiro;
 import com.eliasmeyer.sp.core.domain.model.transferencia.eventos.TransferenciaCanceladaEvento;
 import com.eliasmeyer.sp.core.domain.model.transferencia.eventos.TransferenciaFalhadaEvento;
 import com.eliasmeyer.sp.core.domain.model.transferencia.eventos.TransferenciaRealizadaEvento;
-import com.eliasmeyer.sp.core.domain.model.transferencia.eventos.TransferenciaReservadaEvento;
 import com.eliasmeyer.sp.core.domain.model.transferencia.exception.LojistaNaoPodeTransferirDinheiroException;
 import com.eliasmeyer.sp.core.domain.model.transferencia.exception.TransferenciaParaSiMesmoException;
 import com.eliasmeyer.sp.core.domain.model.transferencia.exception.TransferenciaQuantiaInvalidaException;
@@ -99,7 +98,6 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
 		carteiraPagador.reservar(this.quantia);
 		state.reservar(this);
 		atualizadoEm = LocalDateTime.now();
-		this.registerEvent(() -> new TransferenciaReservadaEvento(this, atualizadoEm));
 	}
 
 	public void realizar() {
@@ -107,14 +105,14 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
 		carteiraRecebedor.creditar(this.quantia);
 		state.completar(this);
 		atualizadoEm = LocalDateTime.now();
-		this.registerEvent(() -> new TransferenciaRealizadaEvento(this, atualizadoEm));
+		this.registerEvent(() -> new TransferenciaRealizadaEvento(this));
 	}
 
 	public void cancelar() {
 		carteiraPagador.cancelarReserva(this.quantia);
 		state.cancelar(this);
 		atualizadoEm = LocalDateTime.now();
-		this.registerEvent(() -> new TransferenciaCanceladaEvento(this, atualizadoEm));
+		this.registerEvent(() -> new TransferenciaCanceladaEvento(this));
 	}
 
 	public void falhar() {
@@ -125,7 +123,7 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
 		}
 		state.falhar(this);
 		atualizadoEm = LocalDateTime.now();
-		this.registerEvent(() -> new TransferenciaFalhadaEvento(this, atualizadoEm));
+		this.registerEvent(() -> new TransferenciaFalhadaEvento(this));
 	}
 
 	public boolean isReservada() {

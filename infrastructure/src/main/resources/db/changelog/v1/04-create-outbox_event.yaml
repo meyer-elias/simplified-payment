@@ -1,0 +1,76 @@
+databaseChangeLog:
+  - changeSet:
+      id: f1d27a9e-cd2d-4635-bb16-34c0c403208e
+      author: elias.meyer
+      preConditions:
+        onFail: MARK_RAN
+        not:
+          tableExists:
+            tableName: TB_OUTBOX_EVENT
+      changes:
+        - createTable:
+            tableName: TB_OUTBOX_EVENT
+            columns:
+              - column:
+                  name: ID
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: AGGREGATE_TYPE
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: AGGREGATE_ID
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: EVENT_TYPE
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: PAYLOAD
+                  type: JSONB
+                  constraints:
+                    nullable: false
+              - column:
+                  name: OCCURRED_ON
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: STATUS
+                  type: SMALLINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: PUBLISHED_AT
+                  type: TIMESTAMP
+      rollback:
+        - dropTable:
+            tableName: TB_OUTBOX_EVENT
+
+  - changeSet:
+      id: 0200d28c-ac56-4109-80a8-3041d023f81d
+      author: elias.meyer
+      preConditions:
+        onFail: MARK_RAN
+        not:
+          indexExists:
+            indexName: IX_STATUS
+            tableName: TB_OUTBOX_EVENT
+      changes:
+        - createIndex:
+            tableName: TB_OUTBOX_EVENT
+            indexName: IX_STATUS
+            columns:
+              - column:
+                  name: STATUS
+      rollback:
+        - dropIndex:
+            indexName: IX_STATUS
+            tableName: TB_OUTBOX_EVENT

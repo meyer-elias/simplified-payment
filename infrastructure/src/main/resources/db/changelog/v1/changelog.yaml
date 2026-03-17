@@ -8,3 +8,6 @@ databaseChangeLog:
   - include:
       file: 03-create-transferencia.yaml
       relativeToChangelogFile: true
+  - include:
+      file: 04-create-outbox_event.yaml
+      relativeToChangelogFile: true

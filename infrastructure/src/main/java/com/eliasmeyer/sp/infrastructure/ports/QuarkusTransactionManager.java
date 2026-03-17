@@ -4,6 +4,7 @@ import com.eliasmeyer.sp.core.application.ports.AppTransactionManager;
 import com.eliasmeyer.sp.core.application.shared.ApplicationException;
 import com.eliasmeyer.sp.core.application.shared.logging.AppLogger;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.TransactionManager;
 
 @ApplicationScoped
@@ -13,6 +14,7 @@ public class QuarkusTransactionManager implements AppTransactionManager {
 
 	private final AppLogger appLogger;
 
+	@Inject
 	public QuarkusTransactionManager(TransactionManager transactionManager,
 		AppLogger appLogger) {
 		this.transactionManager = transactionManager;

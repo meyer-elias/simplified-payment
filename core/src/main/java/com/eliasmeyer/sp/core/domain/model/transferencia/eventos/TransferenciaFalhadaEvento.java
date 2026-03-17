@@ -2,9 +2,37 @@ package com.eliasmeyer.sp.core.domain.model.transferencia.eventos;
 
 import com.eliasmeyer.sp.core.domain.model.transferencia.Transferencia;
 import com.eliasmeyer.sp.core.domain.shared.DomainEvent;
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
 
-public record TransferenciaFalhadaEvento(Transferencia transferencia,
-										 LocalDateTime occurredOn) implements DomainEvent {
+public record TransferenciaFalhadaEvento(
+	UUID eventId,
+	UUID transferenciaId,
+	UUID contaOrigemId,
+	UUID contaDestinoId,
+	BigDecimal valor,
+	Instant occurredOn
+) implements DomainEvent {
 
+	public TransferenciaFalhadaEvento(Transferencia transferencia) {
+		this(
+			UUID.randomUUID(),
+			transferencia.getId().getValue(),
+			transferencia.getPagador().getId().getValue(),
+			transferencia.getRecebedor().getId().getValue(),
+			transferencia.getQuantia().getValor(),
+			Instant.now()
+		);
+	}
+
+	@Override
+	public String aggregateType() {
+		return Transferencia.class.getName();
+	}
+
+	@Override
+	public UUID aggregateId() {
+		return transferenciaId;
+	}
 }

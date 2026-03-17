@@ -1,11 +1,9 @@
 package com.eliasmeyer.sp.infrastructure.ports;
 
 import com.eliasmeyer.sp.core.application.shared.logging.AppLogger;
-import jakarta.enterprise.context.ApplicationScoped;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@ApplicationScoped
 public class LogbackAppLogger implements AppLogger {
 
 	private final Logger logger;
