@@ -29,7 +29,7 @@ public class OutboxEventStoreRepository implements EventStorePort {
 			.map(this::toEntity)
 			.toList();
 
-		outboxEventJpaAdapter.saveAll(entities);
+		outboxEventJpaAdapter.persist(entities);
 	}
 
 	private OutboxEventEntity toEntity(DomainEvent event) {

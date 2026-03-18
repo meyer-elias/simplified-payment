@@ -13,8 +13,6 @@
   <artifactId>simplified-payment-infrastructure</artifactId>
 
   <properties>
-    <maven.compiler.source>25</maven.compiler.source>
-    <maven.compiler.target>25</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <bcrypt.version>0.10.2</bcrypt.version>
   </properties>
@@ -27,6 +25,8 @@
       <artifactId>simplified-payment-core</artifactId>
       <version>${project.parent.version}</version>
     </dependency>
+
+    <!-- Bcrypt -->
     <dependency>
       <groupId>at.favre.lib</groupId>
       <artifactId>bcrypt</artifactId>
@@ -36,20 +36,24 @@
     <!-- Rest -->
     <dependency>
       <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
       <artifactId>quarkus-rest</artifactId>
     </dependency>
 
+    <!-- OpenAPI -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-openapi</artifactId>
+    </dependency>
+    
+    <!-- Hibernate Validator -->
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-hibernate-validator</artifactId>
-      <exclusions>
-        <exclusion>
-          <groupId>org.jboss.slf4j</groupId>
-          <artifactId>slf4j-jboss-logmanager</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
-
 
     <!--Database-->
     <!-- Versioning database -->
@@ -61,20 +65,14 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-liquibase</artifactId>
     </dependency>
+
     <!-- Pool connections database -->
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-agroal</artifactId>
     </dependency>
-    <dependency>
-      <groupId>jakarta.data</groupId>
-      <artifactId>jakarta.data-api</artifactId>
-    </dependency>
+
     <!-- Hibernate ORM specific dependencies -->
-    <dependency>
-      <groupId>org.hibernate.orm</groupId>
-      <artifactId>hibernate-core</artifactId>
-    </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-hibernate-orm</artifactId>
@@ -94,24 +92,16 @@
       <artifactId>quarkus-rest-client-jackson</artifactId>
     </dependency>
 
-
-    <!-- Log -->
+    <!-- RabbitMQ -->
     <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>1.5.32</version>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-messaging-rabbitmq</artifactId>
     </dependency>
 
     <!-- Tests -->
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit</artifactId>
-      <exclusions>
-        <exclusion>
-          <groupId>org.jboss.slf4j</groupId>
-          <artifactId>slf4j-jboss-logmanager</artifactId>
-        </exclusion>
-      </exclusions>
+      <artifactId>quarkus-junit5</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -130,38 +120,14 @@
       <artifactId>quarkus-jdbc-postgresql</artifactId>
     </dependency>
   </dependencies>
+
   <build>
     <plugins>
       <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <!-- This setting is required for the annotation processor dependencies to be managed by Quarkus.
-               More information is available in Maven compiler plugin documentation:
-               https://maven.apache.org/plugins/maven-compiler-plugin/compile-mojo.html#annotationProcessorPathsUseDepMgmt -->
-          <annotationProcessorPathsUseDepMgmt>true</annotationProcessorPathsUseDepMgmt>
-          <annotationProcessorPaths>
-            <path>
-              <groupId>org.hibernate.orm</groupId>
-              <artifactId>hibernate-processor</artifactId>
-              <!-- Note, no artifact version is required, it's managed by Quarkus.  -->
-            </path>
-            <!-- other processors that may be required by your app -->
-          </annotationProcessorPaths>
-          <!-- Other compiler plugin configuration options -->
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>${surefire-plugin.version}</version>
-        <configuration>
-          <systemPropertyVariables>
-            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-            <maven.home>${maven.home}</maven.home>
-          </systemPropertyVariables>
-        </configuration>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
       </plugin>
     </plugins>
-
   </build>
 
 </project>

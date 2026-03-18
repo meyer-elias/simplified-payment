@@ -1,10 +1,9 @@
 package com.eliasmeyer.sp.infrastructure.persistence.carteira;
 
-import jakarta.data.repository.CrudRepository;
-import jakarta.data.repository.Repository;
+import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
+import jakarta.enterprise.context.ApplicationScoped;
 
-@Repository
-public interface CarteiraJpaAdapter extends CrudRepository<CarteiraEntity, String> {
-
+@ApplicationScoped
+class CarteiraJpaAdapter implements PanacheRepositoryBase<CarteiraEntity, String> {
 
 }

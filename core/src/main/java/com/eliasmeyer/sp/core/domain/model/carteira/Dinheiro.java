@@ -18,11 +18,16 @@ public final class Dinheiro implements Comparable<Dinheiro> {
 	}
 
 	public Dinheiro(String valor) {
+		this(parsear(valor));
+	}
+
+	private static BigDecimal parsear(String valor) {
 		if (Objects.isNull(valor) || valor.isEmpty()) {
 			throw new IllegalArgumentException("Valor é nulo ou está vazio");
 		}
-		this(new BigDecimal(valor));
+		return new BigDecimal(valor);
 	}
+
 
 	static Dinheiro zero() {
 		return new Dinheiro("0.0");

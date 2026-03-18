@@ -24,12 +24,12 @@ public class CarteiraRepository implements CarteiraOutputPort {
 	@Override
 	public void salvar(Carteira carteira) {
 		CarteiraEntity entity = carteiraMapper.toEntity(carteira);
-		carteiraJPAAdapter.save(entity);
+		carteiraJPAAdapter.persist(entity);
 	}
 
 	@Override
 	public Optional<Carteira> buscarPor(CarteiraId carteiraId) {
-		return carteiraJPAAdapter.findById(carteiraId.asString())
+		return carteiraJPAAdapter.findByIdOptional(carteiraId.asString())
 			.map(carteiraMapper::toDomain);
 	}
 }

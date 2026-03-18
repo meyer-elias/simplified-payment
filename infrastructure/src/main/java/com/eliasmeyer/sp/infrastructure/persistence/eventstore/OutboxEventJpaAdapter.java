@@ -1,10 +1,10 @@
 package com.eliasmeyer.sp.infrastructure.persistence.eventstore;
 
-import jakarta.data.repository.CrudRepository;
-import jakarta.data.repository.Repository;
+import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
+import jakarta.enterprise.context.ApplicationScoped;
 import java.util.UUID;
 
-@Repository
-public interface OutboxEventJpaAdapter extends CrudRepository<OutboxEventEntity, UUID> {
+@ApplicationScoped
+class OutboxEventJpaAdapter implements PanacheRepositoryBase<OutboxEventEntity, UUID> {
 
 }

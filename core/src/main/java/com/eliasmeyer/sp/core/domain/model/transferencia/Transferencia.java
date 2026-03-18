@@ -68,11 +68,11 @@ public class Transferencia extends AggregateRoot<TransferenciaId> {
 
 	private TransferenciaStatus resolverStatus(TransferenciaState state) {
 		return switch (state) {
-			case TransferenciaCriada _ -> TransferenciaStatus.CRIADA;
-			case TransferenciaReservada _ -> TransferenciaStatus.RESERVADA;
-			case TransferenciaRealizada _ -> TransferenciaStatus.REALIZADA;
-			case TransferenciaCancelada _ -> TransferenciaStatus.CANCELADA;
-			case TransferenciaFalhada _ -> TransferenciaStatus.FALHADA;
+			case TransferenciaCriada ignored -> TransferenciaStatus.CRIADA;
+			case TransferenciaReservada ignored -> TransferenciaStatus.RESERVADA;
+			case TransferenciaRealizada ignored -> TransferenciaStatus.REALIZADA;
+			case TransferenciaCancelada ignored -> TransferenciaStatus.CANCELADA;
+			case TransferenciaFalhada ignored -> TransferenciaStatus.FALHADA;
 			default -> throw new IllegalStateException("Estado desconhecido: " + state.getClass());
 		};
 	}
