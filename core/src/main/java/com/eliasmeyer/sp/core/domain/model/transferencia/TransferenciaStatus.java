@@ -2,19 +2,19 @@ package com.eliasmeyer.sp.core.domain.model.transferencia;
 
 public enum TransferenciaStatus {
 
-	CRIADA(1),
-	RESERVADA(2),
-	REALIZADA(3),
-	CANCELADA(4),
-	FALHADA(5);
+	CRIADA((short) 1),
+	RESERVADA((short) 2),
+	REALIZADA((short) 3),
+	CANCELADA((short) 4),
+	FALHADA((short) 5);
 
-	private final int codigo;
+	private final Short codigo;
 
-	TransferenciaStatus(int codigo) {
+	TransferenciaStatus(Short codigo) {
 		this.codigo = codigo;
 	}
 
-	public int getCodigo() {
+	public Short getCodigo() {
 		return codigo;
 	}
 

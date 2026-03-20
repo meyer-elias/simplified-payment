@@ -2,19 +2,19 @@ package com.eliasmeyer.sp.core.domain.model.usuario;
 
 public enum TipoUsuario {
 
-	COMUM(1, "Comum"),
-	LOJISTA(2, "Lojista");
+	COMUM((short) 1, "Comum"),
+	LOJISTA((short) 2, "Lojista");
 
-	private final int codigo;
+	private final Short codigo;
 
 	private final String descricao;
 
-	TipoUsuario(int codigo, String descricao) {
+	TipoUsuario(Short codigo, String descricao) {
 		this.codigo = codigo;
 		this.descricao = descricao;
 	}
 
-	public int getCodigo() {
+	public Short getCodigo() {
 		return codigo;
 	}
 

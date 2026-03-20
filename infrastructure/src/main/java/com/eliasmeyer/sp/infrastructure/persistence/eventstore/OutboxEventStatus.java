@@ -1,17 +1,17 @@
 package com.eliasmeyer.sp.infrastructure.persistence.eventstore;
 
 public enum OutboxEventStatus {
-	PENDENTE(1),
-	PUBLICADO(2),
-	FALHADO(3);
+	PENDENTE((short) 1),
+	PUBLICADO((short) 2),
+	FALHADO((short) 3);
 
-	private final int codigo;
+	private final Short codigo;
 
-	OutboxEventStatus(int codigo) {
+	OutboxEventStatus(Short codigo) {
 		this.codigo = codigo;
 	}
 
-	public int getCodigo() {
+	public Short getCodigo() {
 		return codigo;
 	}
 }

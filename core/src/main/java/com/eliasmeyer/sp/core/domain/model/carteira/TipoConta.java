@@ -2,16 +2,16 @@ package com.eliasmeyer.sp.core.domain.model.carteira;
 
 public enum TipoConta {
 
-	COMUM(1),
-	LOJISTA(2);
+	COMUM((short) 1),
+	LOJISTA((short) 2);
 
-	private final int codigo;
+	private final Short codigo;
 
-	TipoConta(int codigo) {
+	TipoConta(Short codigo) {
 		this.codigo = codigo;
 	}
 
-	public int getCodigo() {
+	public Short getCodigo() {
 		return codigo;
 	}
 }

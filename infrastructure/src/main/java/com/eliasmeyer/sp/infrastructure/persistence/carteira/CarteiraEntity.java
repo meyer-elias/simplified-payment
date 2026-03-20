@@ -3,7 +3,6 @@ package com.eliasmeyer.sp.infrastructure.persistence.carteira;
 import com.eliasmeyer.sp.core.domain.model.carteira.TipoConta;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
@@ -36,7 +35,6 @@ public class CarteiraEntity extends PanacheEntityBase {
 	private BigDecimal saldoReservado;
 
 	@Column(name = "TP_CONTA", nullable = false, columnDefinition = "SMALLINT")
-	@Convert(converter = TipoContaConverter.class)
 	private TipoConta tipoConta;
 
 	@Column(name = "TS_ULTIMA_ATUALIZACAO", nullable = false)

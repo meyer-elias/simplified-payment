@@ -7,10 +7,10 @@ import java.util.Arrays;
 import java.util.Objects;
 
 @Converter(autoApply = true)
-class TipoUsuarioConverter implements AttributeConverter<TipoUsuario, Integer> {
+class TipoUsuarioConverter implements AttributeConverter<TipoUsuario, Short> {
 
 	@Override
-	public Integer convertToDatabaseColumn(TipoUsuario tipoUsuario) {
+	public Short convertToDatabaseColumn(TipoUsuario tipoUsuario) {
 		if (Objects.isNull(tipoUsuario)) {
 			return null;
 		}
@@ -18,12 +18,12 @@ class TipoUsuarioConverter implements AttributeConverter<TipoUsuario, Integer> {
 	}
 
 	@Override
-	public TipoUsuario convertToEntityAttribute(Integer codigo) {
+	public TipoUsuario convertToEntityAttribute(Short codigo) {
 		if (Objects.isNull(codigo)) {
 			return null;
 		}
 		return Arrays.stream(TipoUsuario.values())
-			.filter(tipoUsuario -> tipoUsuario.getCodigo() == codigo)
+			.filter(tipoUsuario -> Objects.equals(tipoUsuario.getCodigo(), codigo))
 			.findFirst()
 			.orElseThrow(() -> new IllegalStateException(
 				String.format("Enum TipoUsuario não existe com o código %d", codigo)));

@@ -8,19 +8,19 @@ import java.util.Objects;
 
 @Converter(autoApply = true)
 class TransferenciaStatusConverter implements
-	AttributeConverter<TransferenciaStatus, Integer> {
+	AttributeConverter<TransferenciaStatus, Short> {
 
 	@Override
-	public TransferenciaStatus convertToEntityAttribute(Integer codigo) {
+	public TransferenciaStatus convertToEntityAttribute(Short codigo) {
 		return Objects.isNull(codigo) ? null : Arrays.stream(TransferenciaStatus.values())
-			.filter(t -> t.getCodigo() == codigo)
+			.filter(t -> Objects.equals(t.getCodigo(), codigo))
 			.findFirst()
 			.orElseThrow(() -> new IllegalArgumentException("Código Status não encontrado."));
 
 	}
 
 	@Override
-	public Integer convertToDatabaseColumn(TransferenciaStatus transferenciaStatus) {
+	public Short convertToDatabaseColumn(TransferenciaStatus transferenciaStatus) {
 		return Objects.isNull(transferenciaStatus) ? null : transferenciaStatus.getCodigo();
 	}
 }

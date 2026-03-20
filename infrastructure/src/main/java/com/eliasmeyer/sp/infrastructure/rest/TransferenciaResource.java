@@ -14,8 +14,13 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import java.util.List;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.resteasy.reactive.RestResponse;
 
+@Tag(name = "Transferências", description = "Operações relacionadas a transferências financeiras")
 @Path("transferencias")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -32,8 +37,15 @@ public class TransferenciaResource {
 		this.listarTransferenciaInputPort = listarTransferenciaInputPort;
 	}
 
+
+	@Operation(summary = "Efetuar transferência entre contas",
+		description = "Realiza uma transferência de valores entre duas carteiras")
+	@APIResponse(responseCode = "200", description = "Transferência realizada com sucesso")
+	@APIResponse(responseCode = "400", description = "Dados inválidos na requisição")
+	@APIResponse(responseCode = "500", description = "Erro interno do servidor")
 	@POST
-	public RestResponse<Void> efetuarTransferencia(@Valid EfetuarTransferenciaRequest request) {
+	public RestResponse<Void> efetuarTransferencia(
+		@Valid @RequestBody(description = "Dados da transferência") EfetuarTransferenciaRequest request) {
 		EfetuarTransferenciaCommand command = new EfetuarTransferenciaCommand(request.idPagador(),
 			request.idRecebedor(), request.quantia());
 		efetuarTransferenciaInputPort.execute(command);

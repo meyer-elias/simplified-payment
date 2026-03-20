@@ -3,7 +3,6 @@ package com.eliasmeyer.sp.infrastructure.persistence.usuario;
 import com.eliasmeyer.sp.core.domain.model.usuario.TipoUsuario;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
@@ -37,7 +36,6 @@ public class UsuarioEntity extends PanacheEntityBase {
 	private String password;
 
 	@Column(name = "TP_USUARIO", nullable = false, columnDefinition = "SMALLINT")
-	@Convert(converter = TipoUsuarioConverter.class)
 	private TipoUsuario tipoUsuario;
 
 	public String getId() {

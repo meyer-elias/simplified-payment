@@ -58,24 +58,44 @@ databaseChangeLog:
             referencedTableName: TB_CARTEIRA
             referencedColumnNames: COD_CARTEIRA
             constraintName: FK_TRANSFERENCIA_CARTEIRA_PAG
+            preConditions:
+              - onFail: MARK_RAN
+                not:
+                  - foreignKeyConstraintExists:
+                      foreignKeyName: FK_TRANSFERENCIA_CARTEIRA_PAG
         - addForeignKeyConstraint:
             baseTableName: TB_TRANSFERENCIA
             baseColumnNames: COD_CARTEIRA_REC
             referencedTableName: TB_CARTEIRA
             referencedColumnNames: COD_CARTEIRA
             constraintName: FK_TRANSFERENCIA_CARTEIRA_REC
+            preConditions:
+              - onFail: MARK_RAN
+                not:
+                  - foreignKeyConstraintExists:
+                      foreignKeyName: FK_TRANSFERENCIA_CARTEIRA_REC
         - createIndex:
             tableName: TB_TRANSFERENCIA
             indexName: IDX_TRANSFERENCIA_COD_CARTEIRA_PAG
             columns:
               - column:
                   name: COD_CARTEIRA_PAG
+            preConditions:
+              - onFail: MARK_RAN
+                not:
+                  - indexExists:
+                      indexName: IDX_TRANSFERENCIA_COD_CARTEIRA_PAG
         - createIndex:
             tableName: TB_TRANSFERENCIA
             indexName: IDX_TRANSFERENCIA_COD_CARTEIRA_REC
             columns:
               - column:
                   name: COD_CARTEIRA_REC
+            preConditions:
+              - onFail: MARK_RAN
+                not:
+                  - indexExists:
+                      indexName: IDX_TRANSFERENCIA_COD_CARTEIRA_REC
       rollback:
         - dropForeignKeyConstraint:
             constraintName: FK_TRANSFERENCIA_CARTEIRA_PAG

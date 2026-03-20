@@ -4,7 +4,6 @@ import com.eliasmeyer.sp.core.domain.model.transferencia.TransferenciaStatus;
 import com.eliasmeyer.sp.infrastructure.persistence.carteira.CarteiraEntity;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ForeignKey;
@@ -49,7 +48,6 @@ class TransferenciaEntity extends PanacheEntityBase {
 	private LocalDateTime atualizadoEm;
 
 	@Column(name = "STATUS", nullable = false, columnDefinition = "SMALLINT")
-	@Convert(converter = TransferenciaStatusConverter.class)
 	private TransferenciaStatus status;
 
 	public String getId() {

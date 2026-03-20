@@ -1,7 +1,6 @@
 package com.eliasmeyer.sp.infrastructure.persistence.eventstore;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
@@ -37,7 +36,6 @@ class OutboxEventEntity {
 	private Instant occurredOn;
 
 	@Column(name = "STATUS", nullable = false, columnDefinition = "SMALLINT")
-	@Convert(converter = OutboxEventStatusConverter.class)
 	private OutboxEventStatus status;
 
 	@Column(name = "PUBLISHED_AT")
