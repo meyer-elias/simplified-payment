@@ -38,6 +38,7 @@ class TransferenciaMapper {
 		entity.setStatus(transferencia.getStatus());
 		entity.setValor(transferencia.getQuantia().getValor());
 		entity.setAtualizadoEm(transferencia.getAtualizadoEm());
+		entity.setCriadoEm(transferencia.getCriadoEm());
 		return entity;
 	}
 

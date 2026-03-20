@@ -7,7 +7,6 @@ import com.eliasmeyer.sp.core.domain.model.usuario.UsuarioId;
 import com.eliasmeyer.sp.core.domain.ports.out.usuario.UsuarioOutputPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import java.util.Optional;
 
 @ApplicationScoped
@@ -46,8 +45,4 @@ public class UsuarioRepository implements UsuarioOutputPort {
 		usuarioJpaAdapter.persist(usuarioMapper.toEntity(usuario));
 	}
 
-	@Transactional
-	void deleteAll() {
-		usuarioJpaAdapter.deleteAll();
-	}
 }

@@ -1,7 +1,7 @@
 package com.eliasmeyer.sp.infrastructure.config;
 
 import com.eliasmeyer.sp.core.application.shared.logging.AppLogger;
-import com.eliasmeyer.sp.infrastructure.ports.LogbackAppLogger;
+import com.eliasmeyer.sp.infrastructure.ports.JBossAppLogger;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Produces;
@@ -14,6 +14,6 @@ public class LoggerConfig {
 	@Dependent
 	public AppLogger createLogger(InjectionPoint injectionPoint) {
 		Class<?> clazz = injectionPoint.getMember().getDeclaringClass();
-		return new LogbackAppLogger(clazz);
+		return new JBossAppLogger(clazz);
 	}
 }

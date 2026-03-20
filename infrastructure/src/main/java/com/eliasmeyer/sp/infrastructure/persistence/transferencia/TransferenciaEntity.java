@@ -34,7 +34,7 @@ class TransferenciaEntity extends PanacheEntityBase {
 	private CarteiraEntity carteiraPagador;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "COD_CARTEIRA_REC", nullable = false, foreignKey = @ForeignKey(name = "FK_TRANSFERENCIA_CARTEIRA_PAG",
+	@JoinColumn(name = "COD_CARTEIRA_REC", nullable = false, foreignKey = @ForeignKey(name = "FK_TRANSFERENCIA_CARTEIRA_REC",
 		foreignKeyDefinition = "FOREIGN KEY (COD_CARTEIRA_REC) REFERENCES TB_CARTEIRA(COD_CARTEIRA)"))
 	private CarteiraEntity carteiraRecebedor;
 

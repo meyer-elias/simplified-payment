@@ -26,6 +26,9 @@ class UsuarioRepositoryTest {
 	@Inject
 	UsuarioRepository usuarioRepository;
 
+	@Inject
+	UsuarioJpaAdapter usuarioJpaAdapter;
+
 	private Usuario usuarioTeste;
 
 	@BeforeEach
@@ -152,8 +155,9 @@ class UsuarioRepositoryTest {
 	}
 
 	@AfterEach
+	@Transactional
 	void tearDown() {
 		QuarkusTransaction.requiringNew().run(() ->
-			usuarioRepository.deleteAll());
+			usuarioJpaAdapter.deleteAll());
 	}
 }
