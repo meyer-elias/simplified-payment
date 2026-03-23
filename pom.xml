@@ -33,10 +33,15 @@
     <!-- Testes -->
     <assertj.version>3.27.7</assertj.version>
     <mockito.version>5.21.0</mockito.version>
-    <sonar.coverage.jacoco.aggregateXmlReportPaths>
-      ${maven.multiModuleProjectDirectory}/target/site/
-      jacoco-aggregate/jacoco.xml
-    </sonar.coverage.jacoco.aggregateXmlReportPaths>
+
+    <!-- Sonar -->
+    <sonar.projectKey>meyer-elias_simplified-payment</sonar.projectKey>
+    <sonar.organization>emeyer</sonar.organization>
+    <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+
+    <sonar.coverage.jacoco.xmlReportPaths>
+      ${maven.multiModuleProjectDirectory}/**/target/site/jacoco*.xml
+    </sonar.coverage.jacoco.xmlReportPaths>
   </properties>
 
   <developers>
@@ -137,84 +142,88 @@
             </execution>
           </executions>
         </plugin>
-
-        <!-- JaCoCo Coverage -->
-        <plugin>
-          <groupId>org.jacoco</groupId>
-          <artifactId>jacoco-maven-plugin</artifactId>
-          <version>${jacoco-plugin.version}</version>
-          <executions>
-            <execution>
-              <id>prepare-agent</id>
-              <goals>
-                <goal>prepare-agent</goal>
-              </goals>
-              <configuration>
-                <propertyName>jacoco.agent.arg</propertyName>
-                <destFile>${project.build.directory}/jacoco.exec</destFile>
-                <append>true</append>
-                <dumpOnExit>true</dumpOnExit>
-                <classDumpDir>${project.build.directory}/jacoco-classes</classDumpDir>
-                <excludes>
-                  <exclude>sun/**</exclude>
-                  <exclude>jdk/**</exclude>
-                  <exclude>com/sun/**</exclude>
-                  <exclude>**/Test.*</exclude>
-                  <exclude>**/*Test.*</exclude>
-                  <exclude>**/*IT.*</exclude>
-                  <exclude>**/generated/**</exclude>
-                  <exclude>**/Q*.*</exclude>
-                  <exclude>**/*_*.*</exclude>
-                </excludes>
-              </configuration>
-            </execution>
-            <execution>
-              <id>report</id>
-              <goals>
-                <goal>report</goal>
-              </goals>
-              <configuration>
-                <formats>
-                  <format>XML</format>
-                  <format>HTML</format>
-                </formats>
-                <excludes>
-                  <exclude>**/Test.*</exclude>
-                  <exclude>**/*Test.*</exclude>
-                  <exclude>**/*IT.*</exclude>
-                  <exclude>**/generated/**</exclude>
-                  <exclude>**/Q*.*</exclude>
-                  <exclude>**/*_*.*</exclude>
-                  <exclude>**/Application.*</exclude>
-                </excludes>
-              </configuration>
-            </execution>
-            <execution>
-              <id>report-aggregate</id>
-              <phase>verify</phase>
-              <goals>
-                <goal>report-aggregate</goal>
-              </goals>
-              <configuration>
-                <formats>
-                  <format>XML</format>
-                  <format>HTML</format>
-                </formats>
-                <excludes>
-                  <exclude>**/Test.*</exclude>
-                  <exclude>**/*Test.*</exclude>
-                  <exclude>**/*IT.*</exclude>
-                  <exclude>**/generated/**</exclude>
-                  <exclude>**/Q*.*</exclude>
-                  <exclude>**/*_*.*</exclude>
-                  <exclude>**/Application.*</exclude>
-                </excludes>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
       </plugins>
     </pluginManagement>
+
+    <plugins>
+      <!-- JaCoCo Coverage -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+            <configuration>
+              <propertyName>jacoco.agent.arg</propertyName>
+              <destFile>${project.build.directory}/jacoco.exec</destFile>
+              <append>true</append>
+              <dumpOnExit>true</dumpOnExit>
+              <classDumpDir>${project.build.directory}/jacoco-classes</classDumpDir>
+              <excludes>
+                <exclude>sun/**</exclude>
+                <exclude>jdk/**</exclude>
+                <exclude>com/sun/**</exclude>
+                <exclude>**/Test.*</exclude>
+                <exclude>**/*Test.*</exclude>
+                <exclude>**/*IT.*</exclude>
+                <exclude>**/generated/**</exclude>
+                <exclude>**/Q*.*</exclude>
+                <exclude>**/*_*.*</exclude>
+              </excludes>
+            </configuration>
+          </execution>
+          <execution>
+            <id>report</id>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <configuration>
+              <formats>
+                <format>XML</format>
+                <format>HTML</format>
+              </formats>
+              <excludes>
+                <exclude>**/Test.*</exclude>
+                <exclude>**/*Test.*</exclude>
+                <exclude>**/*IT.*</exclude>
+                <exclude>**/generated/**</exclude>
+                <exclude>**/Q*.*</exclude>
+                <exclude>**/*_*.*</exclude>
+                <exclude>**/Application.*</exclude>
+              </excludes>
+            </configuration>
+          </execution>
+          <execution>
+            <id>report-aggregate</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report-aggregate</goal>
+            </goals>
+            <configuration>
+              <formats>
+                <format>XML</format>
+                <format>HTML</format>
+              </formats>
+              <excludes>
+                <exclude>**/Test.*</exclude>
+                <exclude>**/*Test.*</exclude>
+                <exclude>**/*IT.*</exclude>
+                <exclude>**/generated/**</exclude>
+                <exclude>**/Q*.*</exclude>
+                <exclude>**/*_*.*</exclude>
+                <exclude>**/Application.*</exclude>
+              </excludes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+
+
   </build>
   <profiles>
     <profile>
