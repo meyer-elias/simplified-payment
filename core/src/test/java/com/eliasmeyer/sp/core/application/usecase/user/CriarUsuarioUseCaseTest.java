@@ -15,6 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.eliasmeyer.sp.core.application.exception.RegistradorUsuarioIndisponivelException;
+import com.eliasmeyer.sp.core.application.exception.UsuarioJaCadastradoException;
 import com.eliasmeyer.sp.core.application.ports.AppTransactionManager;
 import com.eliasmeyer.sp.core.domain.model.usuario.Documento;
 import com.eliasmeyer.sp.core.domain.model.usuario.Email;
@@ -23,6 +24,7 @@ import com.eliasmeyer.sp.core.domain.ports.in.usuario.CriarUsuarioCommand;
 import com.eliasmeyer.sp.core.domain.ports.out.PasswordEncoder;
 import com.eliasmeyer.sp.core.domain.ports.out.carteira.CarteiraOutputPort;
 import com.eliasmeyer.sp.core.domain.ports.out.usuario.UsuarioOutputPort;
+import java.math.BigDecimal;
 import java.util.Optional;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +58,7 @@ class CriarUsuarioUseCaseTest {
 
 	private CriarUsuarioCommand criarCommand(String nome, String documento, String email,
 		String senha) {
-		return new CriarUsuarioCommand(nome, documento, email, senha, "150.00");
+		return new CriarUsuarioCommand(nome, documento, email, senha, new BigDecimal("150.00"));
 	}
 
 	private CriarUsuarioCommand criarCommandValido() {
@@ -176,15 +178,15 @@ class CriarUsuarioUseCaseTest {
 	class Duplicidade {
 
 		@Test
-		@DisplayName("Deve lançar IllegalArgumentException quando documento já está cadastrado")
-		void shouldThrowIllegalArgumentExceptionWhenDocumentoDuplicado() {
+		@DisplayName("Deve lançar UsuarioJaCadastradoException quando documento já está cadastrado")
+		void shouldThrowUsuarioJaCadastradoExceptionWhenDocumentoDuplicado() {
 			CriarUsuarioCommand command = criarCommandValido();
 			Usuario usuarioExistente = mock(Usuario.class);
 
 			when(usuarioOutputPort.buscarPorDocumento(any(Documento.class))).thenReturn(
 				Optional.of(usuarioExistente));
 
-			Exception exception = assertThrows(IllegalArgumentException.class,
+			Exception exception = assertThrows(UsuarioJaCadastradoException.class,
 				() -> useCase.execute(command));
 			assertEquals("Documento já cadastrado no sistema", exception.getMessage());
 
@@ -194,8 +196,8 @@ class CriarUsuarioUseCaseTest {
 		}
 
 		@Test
-		@DisplayName("Deve lançar IllegalArgumentException quando email já está cadastrado")
-		void shouldThrowIllegalArgumentExceptionWhenEmailDuplicado() {
+		@DisplayName("Deve lançar UsuarioJaCadastradoException quando email já está cadastrado")
+		void shouldThrowUsuarioJaCadastradoExceptionWhenEmailDuplicado() {
 			CriarUsuarioCommand command = criarCommandValido();
 			Usuario usuarioExistente = mock(Usuario.class);
 
@@ -204,7 +206,7 @@ class CriarUsuarioUseCaseTest {
 			when(usuarioOutputPort.buscarPorEmail(any(Email.class))).thenReturn(
 				Optional.of(usuarioExistente));
 
-			Exception exception = assertThrows(IllegalArgumentException.class,
+			Exception exception = assertThrows(UsuarioJaCadastradoException.class,
 				() -> useCase.execute(command));
 			assertEquals("Email já cadastrado no sistema", exception.getMessage());
 

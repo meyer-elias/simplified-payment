@@ -1,8 +1,10 @@
 package com.eliasmeyer.sp.infrastructure.config;
 
 import com.eliasmeyer.sp.core.application.ports.AppTransactionManager;
+import com.eliasmeyer.sp.core.application.ports.out.IdempotencyPort;
 import com.eliasmeyer.sp.core.application.usecase.transferencia.EfetuarTransferenciaUseCase;
 import com.eliasmeyer.sp.core.application.usecase.transferencia.ListarTransferenciaUseCase;
+import com.eliasmeyer.sp.core.application.usecase.transferencia.services.TransferenciaCoordenador;
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.EfetuarTransferenciaInputPort;
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.ListarTransferenciaInputPort;
 import com.eliasmeyer.sp.core.domain.ports.out.carteira.CarteiraOutputPort;
@@ -19,12 +21,22 @@ public class UseCaseConfig {
 	@Produces
 	@ApplicationScoped
 	public EfetuarTransferenciaInputPort efetuarTransferenciaUseCase(
-		TransferenciaAutorizadorOutputPort transferenciaAutorizadorOutputPort,
-		AppTransactionManager appTransactionManager, DomainEventDispatcher domainEventDispatcher,
-		CarteiraOutputPort carteiraOutputPort, TransferenciaOutputPort transferenciaOutputPort) {
-		return new EfetuarTransferenciaUseCase(transferenciaAutorizadorOutputPort,
-			appTransactionManager, domainEventDispatcher, carteiraOutputPort,
-			transferenciaOutputPort);
+		TransferenciaAutorizadorOutputPort autorizador,
+		AppTransactionManager appTransactionManager,
+		DomainEventDispatcher domainEventDispatcher,
+		CarteiraOutputPort carteiraOutputPort,
+		TransferenciaOutputPort transferenciaOutputPort,
+		IdempotencyPort idempotencyPort) {
+
+		TransferenciaCoordenador coordenador = new TransferenciaCoordenador(
+			appTransactionManager, carteiraOutputPort, transferenciaOutputPort);
+
+		return new EfetuarTransferenciaUseCase(
+			autorizador,
+			coordenador,
+			carteiraOutputPort,
+			domainEventDispatcher,
+			idempotencyPort);
 	}
 
 	@Produces

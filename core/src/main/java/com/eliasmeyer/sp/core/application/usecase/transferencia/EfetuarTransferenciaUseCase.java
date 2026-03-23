@@ -4,7 +4,8 @@ import com.eliasmeyer.sp.core.application.exception.AutorizadorIndisponivelExcep
 import com.eliasmeyer.sp.core.application.exception.TransferenciaIndisponivelException;
 import com.eliasmeyer.sp.core.application.exception.TransferenciaNaoAutorizadaException;
 import com.eliasmeyer.sp.core.application.exception.TransferenciaRejeitadaException;
-import com.eliasmeyer.sp.core.application.ports.AppTransactionManager;
+import com.eliasmeyer.sp.core.application.ports.out.IdempotencyPort;
+import com.eliasmeyer.sp.core.application.usecase.transferencia.services.TransferenciaCoordenador;
 import com.eliasmeyer.sp.core.domain.model.carteira.Carteira;
 import com.eliasmeyer.sp.core.domain.model.carteira.CarteiraId;
 import com.eliasmeyer.sp.core.domain.model.carteira.Dinheiro;
@@ -13,9 +14,9 @@ import com.eliasmeyer.sp.core.domain.ports.in.transferencia.EfetuarTransferencia
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.EfetuarTransferenciaInputPort;
 import com.eliasmeyer.sp.core.domain.ports.out.carteira.CarteiraOutputPort;
 import com.eliasmeyer.sp.core.domain.ports.out.transferencia.TransferenciaAutorizadorOutputPort;
-import com.eliasmeyer.sp.core.domain.ports.out.transferencia.TransferenciaOutputPort;
 import com.eliasmeyer.sp.core.domain.shared.DomainEventDispatcher;
 import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * Use case para efetuar uma transferência de dinheiro entre usuários.
@@ -26,44 +27,37 @@ import java.util.ArrayList;
  */
 public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPort {
 
+	private final TransferenciaCoordenador coordenador;
+
+	private final TransferenciaAutorizadorOutputPort autorizador;
+
 	private final CarteiraOutputPort carteiraOutputPort;
+
+	private final IdempotencyPort idempotencyPort;
 
 	private final DomainEventDispatcher domainEventDispatcher;
 
-	private final Reservador reservador;
-
-	private final Autorizador autorizador;
-
-	private final Cancelador cancelador;
-
-	private final Efetivador efetivador;
-
-	private final Falhador falhador;
-
 	public EfetuarTransferenciaUseCase(
-		TransferenciaAutorizadorOutputPort transferenciaAutorizadorOutputPort,
-		AppTransactionManager appTransactionManager, DomainEventDispatcher domainEventDispatcher,
-		CarteiraOutputPort carteiraOutputPort, TransferenciaOutputPort transferenciaOutputPort) {
+		TransferenciaAutorizadorOutputPort autorizador,
+		TransferenciaCoordenador coordenador,
+		CarteiraOutputPort carteiraOutputPort,
+		DomainEventDispatcher domainEventDispatcher,
+		IdempotencyPort idempotencyPort) {
 		this.domainEventDispatcher = domainEventDispatcher;
+		this.coordenador = coordenador;
 		this.carteiraOutputPort = carteiraOutputPort;
-
-		this.cancelador = new Cancelador(appTransactionManager, carteiraOutputPort,
-			transferenciaOutputPort);
-
-		this.autorizador = new Autorizador(transferenciaAutorizadorOutputPort);
-
-		this.reservador = new Reservador(transferenciaOutputPort, carteiraOutputPort,
-			appTransactionManager);
-
-		this.efetivador = new Efetivador(transferenciaOutputPort, carteiraOutputPort,
-			appTransactionManager);
-
-		this.falhador = new Falhador(appTransactionManager, carteiraOutputPort,
-			transferenciaOutputPort);
+		this.autorizador = autorizador;
+		this.idempotencyPort = idempotencyPort;
 	}
 
 	@Override
 	public void execute(EfetuarTransferenciaCommand command) {
+
+		if (Objects.nonNull(command.idempotencyKey()) &&
+			idempotencyPort.jaProcessado(command.idempotencyKey())) {
+			return;
+		}
+
 		CarteiraId idPagador = new CarteiraId(command.idPagador());
 		CarteiraId idRecebedor = new CarteiraId(command.idRecebedor());
 		Dinheiro quantia = new Dinheiro(command.quantia());
@@ -75,11 +69,13 @@ public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPor
 
 		// FASE 1: reservar — se falhar aqui (ex: BD fora, saldo insuficiente),
 		// o TransactionManager faz rollback automaticamente e a exceção sobe sem passar pelo Falhador.
-		reservador.executar(transferencia);
+		coordenador.reservar(transferencia);
 		transferencia.clearEvents();
 
+		boolean sucesso = false;
 		try {
-			boolean autorizado = autorizador.isAutorizado(transferencia);
+			boolean autorizado = autorizador.isAutorizado(
+				transferencia.getPagador().getUsuarioId());
 
 			if (!autorizado) {
 				throw new TransferenciaNaoAutorizadaException(
@@ -87,29 +83,34 @@ public class EfetuarTransferenciaUseCase implements EfetuarTransferenciaInputPor
 						idPagador));
 			}
 
-			efetivador.executar(transferencia);
+			coordenador.efetivar(transferencia);
+			sucesso = true;
 		} catch (TransferenciaRejeitadaException tie) {
 			throw tie;
 
 		} catch (TransferenciaNaoAutorizadaException tnae) {
-			cancelador.execute(transferencia);
+			coordenador.cancelar(transferencia);
 			throw tnae;
 
 		} catch (AutorizadorIndisponivelException tie) {
 			// Pressupõe que qualquer erro do autorizador e como não autorizado!
-			cancelador.execute(transferencia);
+			coordenador.cancelar(transferencia);
 			throw new TransferenciaIndisponivelException("Serviço Autorizador indisponível", tie);
 
 		} catch (Exception e) {
 			// Erros de infraestrutura após a reserva (BD na efetivação, etc.):
 			// Falhador reverte a carteira em memória e tenta salvar o estado falhado (best-effort).
-			falhador.execute(transferencia);
+			coordenador.falhar(transferencia);
 			throw e;
 
 		} finally {
 			// Despacha apenas os eventos acumulados após a reserva (cancelamento, falha ou efetivação).
 			domainEventDispatcher.dispatch(new ArrayList<>(transferencia.domainEvents()));
 			transferencia.clearEvents();
+
+			if (sucesso && Objects.nonNull(command.idempotencyKey())) {
+				idempotencyPort.registrar(command.idempotencyKey());
+			}
 		}
 	}
 

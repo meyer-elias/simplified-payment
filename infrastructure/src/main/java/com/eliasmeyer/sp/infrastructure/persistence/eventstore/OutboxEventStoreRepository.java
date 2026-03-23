@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,6 +31,20 @@ public class OutboxEventStoreRepository implements EventStorePort {
 			.toList();
 
 		outboxEventJpaAdapter.persist(entities);
+	}
+
+	public List<OutboxEventEntity> buscarPendentes() {
+		return outboxEventJpaAdapter.findPendingEvents();
+	}
+
+	@Transactional
+	public void marcarComoPublicado(UUID id) {
+		outboxEventJpaAdapter.marcarComoPublicado(id);
+	}
+
+	@Transactional
+	public void marcarComoFalhado(UUID id) {
+		outboxEventJpaAdapter.marcarComoFalhado(id);
 	}
 
 	private OutboxEventEntity toEntity(DomainEvent event) {

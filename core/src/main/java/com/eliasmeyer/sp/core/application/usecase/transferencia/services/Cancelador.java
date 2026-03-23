@@ -1,4 +1,4 @@
-package com.eliasmeyer.sp.core.application.usecase.transferencia;
+package com.eliasmeyer.sp.core.application.usecase.transferencia.services;
 
 
 import com.eliasmeyer.sp.core.application.ports.AppTransactionManager;

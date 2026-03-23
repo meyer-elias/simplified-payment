@@ -14,7 +14,7 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "TB_OUTBOX_EVENT", indexes = {
 	@Index(name = "IX_STATUS", columnList = "STATUS")
 })
-class OutboxEventEntity {
+public class OutboxEventEntity {
 
 	@Id
 	private UUID id;

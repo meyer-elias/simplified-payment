@@ -1,4 +1,4 @@
-package com.eliasmeyer.sp.infrastructure.rest;
+package com.eliasmeyer.sp.infrastructure.rest.transferencia;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;

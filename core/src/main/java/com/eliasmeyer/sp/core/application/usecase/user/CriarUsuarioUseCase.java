@@ -1,6 +1,7 @@
 package com.eliasmeyer.sp.core.application.usecase.user;
 
 import com.eliasmeyer.sp.core.application.exception.RegistradorUsuarioIndisponivelException;
+import com.eliasmeyer.sp.core.application.exception.UsuarioJaCadastradoException;
 import com.eliasmeyer.sp.core.application.ports.AppTransactionManager;
 import com.eliasmeyer.sp.core.domain.model.carteira.Carteira;
 import com.eliasmeyer.sp.core.domain.model.carteira.CarteiraFactory;
@@ -55,12 +56,14 @@ public class CriarUsuarioUseCase implements CriarUsuarioInputPort {
 
 		// Verifica unicidade de documento
 		usuarioOutputPort.buscarPorDocumento(documento).ifPresent(u -> {
-			throw new IllegalArgumentException("Documento já cadastrado no sistema");
+			throw new UsuarioJaCadastradoException(
+				"Documento " + u.getDocumento().getNumero() + " já cadastrado no sistema");
 		});
 
 		// Verifica unicidade de email
 		usuarioOutputPort.buscarPorEmail(email).ifPresent(u -> {
-			throw new IllegalArgumentException("Email já cadastrado no sistema");
+			throw new UsuarioJaCadastradoException(
+				"E-mail " + u.getEmail().address() + " já cadastrado no sistema");
 		});
 
 		// Cria novo usuário do tipo apropriado

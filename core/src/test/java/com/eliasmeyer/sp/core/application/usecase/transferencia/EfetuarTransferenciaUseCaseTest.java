@@ -18,6 +18,8 @@ import com.eliasmeyer.sp.core.application.exception.TransferenciaIndisponivelExc
 import com.eliasmeyer.sp.core.application.exception.TransferenciaNaoAutorizadaException;
 import com.eliasmeyer.sp.core.application.exception.TransferenciaRejeitadaException;
 import com.eliasmeyer.sp.core.application.ports.AppTransactionManager;
+import com.eliasmeyer.sp.core.application.ports.out.IdempotencyPort;
+import com.eliasmeyer.sp.core.application.usecase.transferencia.services.TransferenciaCoordenador;
 import com.eliasmeyer.sp.core.domain.model.carteira.Carteira;
 import com.eliasmeyer.sp.core.domain.model.carteira.CarteiraComum;
 import com.eliasmeyer.sp.core.domain.model.carteira.CarteiraFactory;
@@ -40,6 +42,7 @@ import com.eliasmeyer.sp.core.domain.shared.DomainEventDispatcher;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -57,6 +60,7 @@ class EfetuarTransferenciaUseCaseTest {
 	private EfetuarTransferenciaUseCase useCase;
 	private Carteira pagador;
 	private Carteira recebedor;
+	private IdempotencyPort idempotencyPort;
 
 	@BeforeEach
 	void setUp() {
@@ -65,6 +69,13 @@ class EfetuarTransferenciaUseCaseTest {
 		carteiraOutputPort = mock(CarteiraOutputPort.class);
 		domainEventDispatcher = mock(DomainEventDispatcher.class);
 		appTransactionManager = mock(AppTransactionManager.class);
+		idempotencyPort = mock(IdempotencyPort.class);
+		TransferenciaCoordenador coordenador = new TransferenciaCoordenador(
+			appTransactionManager,
+			carteiraOutputPort,
+			transferenciaOutputPort
+		);
+
 		doAnswer(invocation -> {
 			Runnable action = invocation.getArgument(0);
 			action.run();
@@ -72,10 +83,10 @@ class EfetuarTransferenciaUseCaseTest {
 		}).when(appTransactionManager).execute(any(Runnable.class));
 		useCase = new EfetuarTransferenciaUseCase(
 			transferenciaAutorizadorOutputPort,
-			appTransactionManager,
-			domainEventDispatcher,
+			coordenador,
 			carteiraOutputPort,
-			transferenciaOutputPort
+			domainEventDispatcher,
+			idempotencyPort
 		);
 		pagador = criarCarteiraComum("12345678909", "pagador@email.com");
 		recebedor = criarCarteiraComum("69003525021", "recebedor@email.com");
@@ -84,6 +95,7 @@ class EfetuarTransferenciaUseCaseTest {
 	private EfetuarTransferenciaCommand criarCommand(CarteiraId idPagador, CarteiraId idRecebedor,
 		String quantia) {
 		return new EfetuarTransferenciaCommand(
+			UUID.randomUUID().toString(),
 			idPagador.asString(),
 			idRecebedor.asString(),
 			new BigDecimal(quantia)

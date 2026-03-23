@@ -1,4 +1,4 @@
-package com.eliasmeyer.sp.infrastructure.rest;
+package com.eliasmeyer.sp.infrastructure.rest.transferencia;
 
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.EfetuarTransferenciaCommand;
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.EfetuarTransferenciaInputPort;
@@ -7,8 +7,10 @@ import com.eliasmeyer.sp.core.domain.ports.in.transferencia.ListarTransferenciaP
 import com.eliasmeyer.sp.core.domain.ports.out.transferencia.TransferenciaOutput;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -45,9 +47,13 @@ public class TransferenciaResource {
 	@APIResponse(responseCode = "500", description = "Erro interno do servidor")
 	@POST
 	public RestResponse<Void> efetuarTransferencia(
+		@NotNull @HeaderParam("idempotencyKey") String idempotencyKey,
 		@Valid @RequestBody(description = "Dados da transferência") EfetuarTransferenciaRequest request) {
-		EfetuarTransferenciaCommand command = new EfetuarTransferenciaCommand(request.idPagador(),
-			request.idRecebedor(), request.quantia());
+		EfetuarTransferenciaCommand command = new EfetuarTransferenciaCommand(
+			idempotencyKey,
+			request.idPagador(),
+			request.idRecebedor(),
+			request.quantia());
 		efetuarTransferenciaInputPort.execute(command);
 		return RestResponse.ok();
 	}
