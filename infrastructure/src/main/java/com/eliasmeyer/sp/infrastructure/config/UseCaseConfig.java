@@ -5,11 +5,15 @@ import com.eliasmeyer.sp.core.application.ports.out.IdempotencyPort;
 import com.eliasmeyer.sp.core.application.usecase.transferencia.EfetuarTransferenciaUseCase;
 import com.eliasmeyer.sp.core.application.usecase.transferencia.ListarTransferenciaUseCase;
 import com.eliasmeyer.sp.core.application.usecase.transferencia.services.TransferenciaCoordenador;
+import com.eliasmeyer.sp.core.application.usecase.user.CriarUsuarioUseCase;
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.EfetuarTransferenciaInputPort;
 import com.eliasmeyer.sp.core.domain.ports.in.transferencia.ListarTransferenciaInputPort;
+import com.eliasmeyer.sp.core.domain.ports.in.usuario.CriarUsuarioInputPort;
+import com.eliasmeyer.sp.core.domain.ports.out.PasswordEncoder;
 import com.eliasmeyer.sp.core.domain.ports.out.carteira.CarteiraOutputPort;
 import com.eliasmeyer.sp.core.domain.ports.out.transferencia.TransferenciaAutorizadorOutputPort;
 import com.eliasmeyer.sp.core.domain.ports.out.transferencia.TransferenciaOutputPort;
+import com.eliasmeyer.sp.core.domain.ports.out.usuario.UsuarioOutputPort;
 import com.eliasmeyer.sp.core.domain.shared.DomainEventDispatcher;
 import com.eliasmeyer.sp.infrastructure.persistence.transferencia.TransferenciaRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -44,5 +48,19 @@ public class UseCaseConfig {
 	public ListarTransferenciaInputPort listarTransferenciaUseCase(
 		TransferenciaRepository repository) {
 		return new ListarTransferenciaUseCase(repository);
+	}
+
+	@Produces
+	@ApplicationScoped
+	public CriarUsuarioInputPort criarUsuarioUseCase(
+		UsuarioOutputPort usuarioOutputPort,
+		CarteiraOutputPort carteiraOutputPort,
+		PasswordEncoder passwordEncoder,
+		AppTransactionManager appTransactionManager) {
+		return new CriarUsuarioUseCase(
+			usuarioOutputPort,
+			carteiraOutputPort,
+			passwordEncoder,
+			appTransactionManager);
 	}
 }

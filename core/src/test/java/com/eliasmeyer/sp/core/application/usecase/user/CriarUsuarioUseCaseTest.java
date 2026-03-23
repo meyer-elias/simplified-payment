@@ -18,6 +18,7 @@ import com.eliasmeyer.sp.core.application.exception.RegistradorUsuarioIndisponiv
 import com.eliasmeyer.sp.core.application.exception.UsuarioJaCadastradoException;
 import com.eliasmeyer.sp.core.application.ports.AppTransactionManager;
 import com.eliasmeyer.sp.core.domain.model.usuario.Documento;
+import com.eliasmeyer.sp.core.domain.model.usuario.DocumentoFactory;
 import com.eliasmeyer.sp.core.domain.model.usuario.Email;
 import com.eliasmeyer.sp.core.domain.model.usuario.Usuario;
 import com.eliasmeyer.sp.core.domain.ports.in.usuario.CriarUsuarioCommand;
@@ -36,7 +37,6 @@ import org.junit.jupiter.api.Test;
 class CriarUsuarioUseCaseTest {
 
 	private UsuarioOutputPort usuarioOutputPort;
-	private CarteiraOutputPort carteiraOutputPort;
 	private PasswordEncoder passwordEncoder;
 	private AppTransactionManager appTransactionManager;
 
@@ -47,7 +47,7 @@ class CriarUsuarioUseCaseTest {
 		usuarioOutputPort = mock(UsuarioOutputPort.class);
 		passwordEncoder = mock(PasswordEncoder.class);
 		appTransactionManager = mock(AppTransactionManager.class);
-		carteiraOutputPort = mock(CarteiraOutputPort.class);
+		CarteiraOutputPort carteiraOutputPort = mock(CarteiraOutputPort.class);
 		doInvocationTransactionHelperMethod();
 
 		useCase = new CriarUsuarioUseCase(usuarioOutputPort, carteiraOutputPort, passwordEncoder,
@@ -62,7 +62,7 @@ class CriarUsuarioUseCaseTest {
 	}
 
 	private CriarUsuarioCommand criarCommandValido() {
-		return criarCommand("Usuario Teste", "12345678909", "teste@email.com", "senha123");
+		return criarCommand("Usuario Teste", "87324548059", "teste@email.com", "senha123");
 	}
 
 	private void doInvocationTransactionHelperMethod() {
@@ -95,7 +95,7 @@ class CriarUsuarioUseCaseTest {
 		@Test
 		@DisplayName("Deve criar usuário do tipo comum quando documento é CPF")
 		void shouldCriarUsuarioComumWhenDocumentoIsCPF() {
-			CriarUsuarioCommand command = criarCommand("Usuario Teste", "12345678909",
+			CriarUsuarioCommand command = criarCommand("Usuario Teste", "87324548059",
 				"teste@email.com", "senha123");
 
 			when(usuarioOutputPort.buscarPorDocumento(any(Documento.class))).thenReturn(
@@ -146,7 +146,7 @@ class CriarUsuarioUseCaseTest {
 		@Test
 		@DisplayName("Deve lançar IllegalArgumentException quando email é inválido")
 		void shouldThrowIllegalArgumentExceptionWhenEmailInvalido() {
-			CriarUsuarioCommand command = criarCommand("Usuario Teste", "12345678909",
+			CriarUsuarioCommand command = criarCommand("Usuario Teste", "87324548059",
 				"email-invalido", "senha123");
 
 			Exception exception = assertThrows(IllegalArgumentException.class,
@@ -161,7 +161,7 @@ class CriarUsuarioUseCaseTest {
 		@Test
 		@DisplayName("Deve lançar IllegalArgumentException quando nome é muito curto")
 		void shouldThrowIllegalArgumentExceptionWhenNomeMuitoCurto() {
-			CriarUsuarioCommand command = criarCommand("AB", "12345678909", "teste@email.com",
+			CriarUsuarioCommand command = criarCommand("AB", "87324548059", "teste@email.com",
 				"senha123");
 
 			Exception exception = assertThrows(IllegalArgumentException.class,
@@ -185,10 +185,12 @@ class CriarUsuarioUseCaseTest {
 
 			when(usuarioOutputPort.buscarPorDocumento(any(Documento.class))).thenReturn(
 				Optional.of(usuarioExistente));
+			when(usuarioExistente.getDocumento()).thenReturn(DocumentoFactory.criar("87324548059"));
 
 			Exception exception = assertThrows(UsuarioJaCadastradoException.class,
 				() -> useCase.execute(command));
-			assertEquals("Documento já cadastrado no sistema", exception.getMessage());
+			assertEquals("Documento 873.245.480-59 já cadastrado no sistema",
+				exception.getMessage());
 
 			verify(usuarioOutputPort, never()).buscarPorEmail(any());
 			verify(usuarioOutputPort, never()).salvar(any());
@@ -205,10 +207,12 @@ class CriarUsuarioUseCaseTest {
 				Optional.empty());
 			when(usuarioOutputPort.buscarPorEmail(any(Email.class))).thenReturn(
 				Optional.of(usuarioExistente));
+			when(usuarioExistente.getDocumento()).thenReturn(DocumentoFactory.criar("87324548059"));
+			when(usuarioExistente.getEmail()).thenReturn(new Email("teste@email.com"));
 
 			Exception exception = assertThrows(UsuarioJaCadastradoException.class,
 				() -> useCase.execute(command));
-			assertEquals("Email já cadastrado no sistema", exception.getMessage());
+			assertEquals("E-mail teste@email.com já cadastrado no sistema", exception.getMessage());
 
 			verify(usuarioOutputPort, never()).salvar(any());
 			verify(appTransactionManager, never()).execute(any(Runnable.class));
