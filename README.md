@@ -1,5 +1,8 @@
 # Simplified Payment — PicPay Challenge
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=meyer-elias_simplified-payment&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=meyer-elias_simplified-payment)
+
+
 > 🏆 **Solução completa ao desafio técnico PicPay Simplificado** com arquitetura enterprise-ready.
 > Implementada com **Domain-Driven Design (DDD)**, **Arquitetura Hexagonal** e padrões modernos de
 > engenharia.
